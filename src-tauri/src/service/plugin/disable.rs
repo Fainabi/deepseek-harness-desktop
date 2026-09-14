@@ -136,6 +136,34 @@ pub(crate) fn has_patch_disable(profile: &Path, id: &str) -> bool {
         .any(|target| names.iter().any(|n| n == target))
 }
 
+/// 插件当前是否处于「宿主会加载」的运行态。
+///
+/// 判定 = 清单 `dependencies` 里已安装 + 在 `dsh.profile.bundles`（启动加载层）
+/// 中 + 未被 `cordis.patch.yml` 配置覆盖禁用。
+///
+/// 为什么以 bundles 而非桌面禁用清单为准：`disabled-plugins.json` 与 bundles 由
+/// [`disable_plugin_at`] / [`enable_plugin_at`] 成对维护，运行期真正决定加载与否的
+/// 是 bundles（配置覆盖禁用则在其之上再拦一层），因此这里与 `watch::parse_plugins`
+/// 的展示口径保持一致。
+///
+/// 用途：壳层能力必须跟随插件开关。dsh-tauri-pet 被禁用后宿主不再注册它的 SSE
+/// 路由，壳层若继续订阅只会一路重连注定失败的请求（issue #521）。
+pub(crate) fn is_plugin_loaded(profile: &Path, id: &str) -> bool {
+    let Ok(content) = fs::read_to_string(profile.join("package.json")) else {
+        return false;
+    };
+    let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&content) else {
+        return false;
+    };
+    let bundled = manifest
+        .get("dsh")
+        .and_then(|dsh| dsh.get("profile"))
+        .and_then(|section| section.get("bundles"))
+        .and_then(|bundles| bundles.as_array())
+        .is_some_and(|bundles| bundles.iter().any(|entry| entry.as_str() == Some(id)));
+    is_in_dependencies(&manifest, id) && bundled && !has_patch_disable(profile, id)
+}
+
 /// 从 `cordis.patch.yml` 移除目标插件的显式禁用覆盖，其余配置原样保留。
 ///
 /// 精确语义（对应 issue #399「不删除无关配置」）：
@@ -696,6 +724,38 @@ mod tests {
         enable_plugin_at(&profile, "dsh-better-sidebar", true).unwrap();
         let content = fs::read_to_string(profile.join("cordis.patch.yml")).unwrap();
         assert!(!content.contains("better-sidebar"));
+
+        fs::remove_dir_all(&profile).ok();
+    }
+
+    /// `is_plugin_loaded`：运行期加载依据是 `dsh.profile.bundles`，配置覆盖禁用
+    /// 在其之上再拦一层。壳层据此判断依赖插件是否仍在运行（issue #521：桌宠插件
+    /// 被禁用后不得继续订阅它提供的会话流）。
+    #[test]
+    fn is_plugin_loaded_follows_bundles_and_patch_override() {
+        let profile = build_profile("loaded", "p");
+        // 已安装且仍在 bundles、无配置覆盖 → 运行态
+        assert!(is_plugin_loaded(&profile, "dsh-better-sidebar"));
+
+        // 桌面禁用 = 从 bundles 移除（依赖与包体保留）→ 不再加载
+        disable_plugin_at(&profile, "dsh-better-sidebar").unwrap();
+        assert!(!is_plugin_loaded(&profile, "dsh-better-sidebar"));
+
+        // 重新启用 → 恢复运行态
+        enable_plugin_at(&profile, "dsh-better-sidebar", false).unwrap();
+        assert!(is_plugin_loaded(&profile, "dsh-better-sidebar"));
+
+        // 配置覆盖禁用（条目仍留在 bundles）→ 同样视为不加载，且不影响其它插件
+        write_patch(&profile, "- id: dsh-better-sidebar\n  disabled: true\n");
+        assert!(!is_plugin_loaded(&profile, "dsh-better-sidebar"));
+        assert!(is_plugin_loaded(&profile, "dshmarket"));
+
+        // 未安装 / 清单缺失 / 清单损坏 → 一律 false，不 panic
+        assert!(!is_plugin_loaded(&profile, "dsh-not-installed"));
+        assert!(!is_plugin_loaded(&std::env::temp_dir(), "dshmarket"));
+        write_patch(&profile, "- id: dsh-better-sidebar\n  disabled: false\n");
+        fs::write(profile.join("package.json"), "not: [valid json").unwrap();
+        assert!(!is_plugin_loaded(&profile, "dshmarket"));
 
         fs::remove_dir_all(&profile).ok();
     }

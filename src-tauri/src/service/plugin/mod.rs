@@ -60,6 +60,7 @@ pub(crate) use preset::{
 };
 pub(crate) use safe::purge_user_plugins_in_safe_profile;
 pub use disable::{disable, enable};
+pub(crate) use disable::is_plugin_loaded;
 pub use recovery::{
     detect as detect_recovery, uninstall as uninstall_recovery, PluginRecoveryInfo,
 };

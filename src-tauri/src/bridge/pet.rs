@@ -179,8 +179,10 @@ pub fn set_pet_enabled(app: AppHandle, enabled: bool) -> Result<PetStatus, Strin
     let updated = config::update_store_dat_setting(&app, |setting| {
         setting.pet_enabled = enabled;
     });
-    // 关闭即无消费者：先停掉宿主会话流订阅，窗口销毁随后在后台完成。
-    sync_pet_session_stream(&app, enabled);
+    // 关闭即无消费者：先停掉宿主会话流订阅，窗口销毁随后在后台完成。这里用
+    // [`pet_stream_wanted`] 而不是直接传 `enabled`：插件被禁用时即使桌宠开关是开的
+    // 也不能订阅（宿主侧路由不存在，见 issue #521）。
+    sync_pet_session_stream(&app, pet_stream_wanted(&app));
     defer_pet_window_op(&app, enabled)?;
     let status = status_from_setting(&updated);
     emit_pet_status(&app, &status);
@@ -261,6 +263,9 @@ pub fn push_pet_session(app: AppHandle, action: String, session: Value) -> Resul
 /// SESSION_STREAM_PATH 保持一致）。
 const SESSION_STREAM_PATH: &str = "/api/dsh-pet/session-stream";
 
+/// 提供该 SSE 流的宿主插件 id（`resources/internal-plugins.json` 的条目 id）。
+const PET_PLUGIN_ID: &str = "dsh-tauri-pet";
+
 /// 会话增量「动作 → 桌宠窗口事件名」映射（与 push_pet_session 共用）。
 fn session_event_of(action: &str) -> Option<&'static str> {
     match action {
@@ -338,13 +343,37 @@ fn pet_stream_handle() -> &'static Mutex<Option<tauri::async_runtime::JoinHandle
     HANDLE.get_or_init(|| Mutex::new(None))
 }
 
-/// 是否需要订阅宿主会话增量流：桌宠已启用（窗口存在）。
+/// 桌宠插件（[`PET_PLUGIN_ID`]）当前是否仍会被宿主加载。
+///
+/// 插件被用户禁用、或被 `cordis.patch.yml` 配置覆盖禁用后，宿主侧不再注册
+/// [`SESSION_STREAM_PATH`] 路由（卸载 `ctx.effect` 时连存量连接一起关掉）。
+/// 此时壳层继续订阅只会每 2s 发一次注定失败的请求并刷日志——「有消费者」必须
+/// 同时满足「桌宠已启用」与「插件仍在运行」（issue #521）。
+fn pet_plugin_loaded(app: &AppHandle) -> bool {
+    crate::service::plugin::is_plugin_loaded(
+        &crate::service::plugin::profile_dir(app),
+        PET_PLUGIN_ID,
+    )
+}
+
+/// 「是否需要订阅」的纯逻辑内核：已读设置 + 插件运行态。
+///
+/// 抽出来是为了让 `sync_pet_session_stream` 的消费循环复用同一判定（每轮重连前
+/// 用已读到的设置复核），避免两处口径漂移。
+fn stream_wanted_for(setting: &config::Setting, plugin_loaded: bool) -> bool {
+    let status = status_from_setting(setting);
+    status.enabled && status.visible && plugin_loaded
+}
+
+/// 是否需要订阅宿主会话增量流：桌宠已启用**且**提供该流的插件仍在加载。
 ///
 /// 关闭桌宠（`set_pet_enabled(false)`）会销毁窗口，同样视为无消费者——窗口不渲染时
 /// 转发毫无意义，停掉订阅即让宿主的热路径与逐会话累计态一并短路。
+///
+/// 插件被禁用时同样没有消费者（路由已不存在）；插件重新启用由插件监控
+/// （`service::plugin::watch` 的 `dsh-plugins-updated`）触发重新评估。
 pub fn pet_stream_wanted(app: &AppHandle) -> bool {
-    let status = status_from_setting(&config::get_store_dat_setting(app));
-    status.enabled && status.visible
+    stream_wanted_for(&config::get_store_dat_setting(app), pet_plugin_loaded(app))
 }
 
 /// 断线重连日志的重记间隔：状态持续不变时最多这么久重记一次。
@@ -393,8 +422,9 @@ impl PetStreamLogThrottle {
 /// [`consume_pet_session_stream`]），幂等：启用且无活动任务才 spawn；停用时
 /// abort 任务，连接立即关闭。
 ///
-/// 调用点：应用 setup、`set_pet_enabled`。桌宠关闭后 Rust 不再是宿主流的消费者，
-/// 宿主侧随即不再为桌宠做任何转发。
+/// 调用点：应用 setup、`set_pet_enabled`，以及插件列表变化（`dsh-plugins-updated`
+/// 监听）——桌宠关闭后 Rust 不再是宿主流的消费者，宿主侧随即不再为桌宠做任何转发；
+/// `dsh-tauri-pet` 被禁用后宿主注销了路由，同样必须停止订阅（issue #521）。
 pub fn sync_pet_session_stream(app: &AppHandle, wanted: bool) {
     let slot = pet_stream_handle();
     let mut handle = slot.lock().unwrap_or_else(|error| error.into_inner());
@@ -418,6 +448,16 @@ pub fn sync_pet_session_stream(app: &AppHandle, wanted: bool) {
         let mut throttle = PetStreamLogThrottle::new();
         loop {
             let setting = config::get_store_dat_setting(&app);
+            // 每轮重连前复核消费者是否还在：桌宠被关闭、或提供流的插件被禁用
+            // （宿主已注销路由）时直接结束任务，不再发起注定失败的请求并刷日志
+            // （issue #521）。常规路径已由 [`sync_pet_session_stream`] 停止，这里是
+            // 兜底——即使插件列表事件没送到，也不会持续打不存在的接口。
+            if !stream_wanted_for(&setting, pet_plugin_loaded(&app)) {
+                log::info!(
+                    "[pet-stream] consumer gone (pet disabled or dsh-tauri-pet plugin unloaded); host session stream stopped"
+                );
+                return;
+            }
             let url = format!("http://127.0.0.1:{}{}", setting.port, SESSION_STREAM_PATH);
             match consume_pet_session_stream(&app, &url).await {
                 Ok(()) => {
@@ -1125,6 +1165,23 @@ mod tests {
     struct TestDirectory(PathBuf);
 
     // ---- 重连日志节流（宿主不可用期间每 2s 一次失败不能刷满日志）----
+
+    /// 「有消费者」= 桌宠已启用**且**提供流的插件仍在加载（issue #521）：任一条件
+    /// 不满足都不得订阅，否则会一路重连宿主已注销的路由。
+    #[test]
+    fn pet_stream_wanted_requires_enabled_pet_and_loaded_plugin() {
+        let mut setting = config::Setting::default();
+        setting.pet_enabled = false;
+        assert!(!stream_wanted_for(&setting, true));
+        assert!(!stream_wanted_for(&setting, false));
+
+        setting.pet_enabled = true;
+        assert!(stream_wanted_for(&setting, true));
+        assert!(
+            !stream_wanted_for(&setting, false),
+            "插件被禁用时宿主不再注册 /api/dsh-pet/session-stream，禁止订阅"
+        );
+    }
 
     fn throttle(relog_interval: Duration) -> PetStreamLogThrottle {
         PetStreamLogThrottle {

@@ -9,7 +9,7 @@ use tauri::{
     ipc::Invoke,
     menu::{Menu, MenuEvent, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder, Wry,
+    Emitter, Listener, Manager, Runtime, WebviewUrl, WebviewWindowBuilder, Wry,
 };
 
 #[cfg(target_os = "macos")]
@@ -666,6 +666,20 @@ pub fn builder() -> tauri::Builder<tauri::Wry> {
             crate::bridge::pet::sync_pet_session_stream(
                 &app_handle,
                 crate::bridge::pet::pet_stream_wanted(&app_handle),
+            );
+            // 插件加载集合变化会改变壳层可用能力：桌宠插件被禁用（或配置覆盖禁用）
+            // 后必须立刻断开会话流订阅，重新启用后再自动续订（issue #521）。插件
+            // 监控每次推送列表——disable/enable、外部编辑 bundle/patch/禁用清单——
+            // 都触发一次幂等重估，不额外引入轮询。
+            let app_for_plugin_changes = app_handle.clone();
+            app_handle.listen(
+                crate::service::plugin::watch::PLUGINS_UPDATED_EVENT,
+                move |_| {
+                    crate::bridge::pet::sync_pet_session_stream(
+                        &app_for_plugin_changes,
+                        crate::bridge::pet::pet_stream_wanted(&app_for_plugin_changes),
+                    );
+                },
             );
             Ok(())
         })

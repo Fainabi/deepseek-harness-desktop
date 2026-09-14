@@ -84,7 +84,9 @@ describe('closing the pet persists (restart must not re-open it)', () => {
     // false 就不会再拉起窗口。同时停掉会话流，宿主侧热路径整条短路。
     expect(body).toContain('setting.pet_enabled = enabled')
     expect(body).toContain('update_store_dat_setting')
-    expect(body).toContain('sync_pet_session_stream(&app, enabled)')
+    // 传 pet_stream_wanted 而非直接传 enabled：插件被禁用时宿主侧路由不存在，
+    // 开关为「开」也不能订阅（issue #521）。
+    expect(body).toContain('sync_pet_session_stream(&app, pet_stream_wanted(&app))')
   })
 
   it('keeps no in-process visibility state that could override the setting', () => {
@@ -97,6 +99,41 @@ describe('closing the pet persists (restart must not re-open it)', () => {
   it('routes the window close request through the persistent path', () => {
     // Alt+F4 / 系统关闭桌宠窗口 = 关闭宠物（持久），不能再是「临时收起」。
     expect(builder).toContain('set_pet_enabled(handle, false)')
+  })
+})
+
+describe('pet stream stops when the pet plugin is disabled (issue #521)', () => {
+  const bridge = readSource('../src-tauri/src/bridge/pet.rs')
+  const builder = readSource('../src-tauri/src/desktop/builder.rs')
+  const disable = readSource('../src-tauri/src/service/plugin/disable.rs')
+
+  it('requires the pet plugin to be loaded before subscribing', () => {
+    // 插件禁用后宿主不再注册 /api/dsh-pet/session-stream（route 卸载即关掉存量连接）：
+    // 此时壳层继续订阅只会每 2s 打一次注定失败的请求并刷日志。消费者判定必须同时
+    // 包含「桌宠已启用」与「插件仍在运行」。
+    const body = functionBody(bridge, 'pet_stream_wanted')
+
+    expect(body).toContain('pet_plugin_loaded')
+    // 订阅判定内核：两个条件缺一不可（sync_pet_session_stream 与消费循环共用同一判定）。
+    expect(bridge).toContain('status.enabled && status.visible && plugin_loaded')
+    expect(bridge).toContain('const PET_PLUGIN_ID: &str = "dsh-tauri-pet"')
+    // 兜底：消费循环每轮重连前复核，插件列表事件没送到也不会一直打不存在的接口。
+    expect(bridge).toContain('if !stream_wanted_for(&setting, pet_plugin_loaded(&app))')
+  })
+
+  it('re-evaluates the subscription whenever the plugin list changes', () => {
+    // 禁用/启用插件、外部编辑 bundle/patch/禁用清单都会推送 dsh-plugins-updated：
+    // 壳层在该事件上做一次幂等重估 —— 禁用立即断开、重新启用自动续订。
+    expect(builder).toContain('PLUGINS_UPDATED_EVENT')
+    expect(builder).toContain('sync_pet_session_stream')
+  })
+
+  it('treats bundles + patch override as the runtime load signal', () => {
+    // 运行期加载依据是 dsh.profile.bundles；配置覆盖禁用（disabled: true）在其之上
+    // 再拦一层。禁用只从 bundles 移除、依赖键残留，不能算作仍在运行。
+    expect(disable).toContain('fn is_plugin_loaded')
+    expect(disable).toContain('"bundles"')
+    expect(disable).toContain('has_patch_disable')
   })
 })
 
