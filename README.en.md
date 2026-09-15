@@ -57,6 +57,7 @@ Plugins offered in the first-run wizard; select what you need and install on dem
 - [DSH Market](https://github.com/dsh-market/dsh-market) — browse, search, and one-click install community plugins (Recommended)
 - [DSH Better Sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) — a VSCode-like right sidebar, isolated per session (Recommended)
 - [DSH Rewind](https://github.com/SiriLee/dsh-rewind) — in-window conversation rewind that never forks a new session, plus a lightweight workspace backup that restores files along with the rewind (Recommended)
+- [Selection Follow-up](https://github.com/MasterZ9286/dsh-plugin-followup) — right-click a selected passage to quote it, keep the follow-up Q&A in a per-session right-column panel, and hide that turn in the main conversation so the comparison survives scrolling
 
 > The preset list is maintained by the desktop project. To request a new or updated preset, open an issue in [deepseek-harness-desktop](https://github.com/dsh-tauri-desk/deepseek-harness-desktop/issues).
 
