@@ -9,6 +9,7 @@ inject-workspace-packages: true
 minimumReleaseAgeExclude:
   - '@reause/core@0.1.7'
   - '@reause/shared@0.1.7'
+  - '@tauri-apps/plugin-http@2.6.1'
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -17,7 +18,7 @@ packages:
   - packages/*
 
 patchedDependencies:
-  '@tauri-apps/plugin-http@2.6.0': patches/@tauri-apps__plugin-http@2.6.0.patch
+  '@tauri-apps/plugin-http@2.6.1': patches/@tauri-apps__plugin-http@2.6.1.patch
   bumpp: patches/bumpp.patch
 
 catalog:
@@ -97,7 +98,7 @@ catalogs:
   tauri:
     '@tauri-apps/api': ^2.11.1
     '@tauri-apps/cli': ^2.11.4
-    '@tauri-apps/plugin-http': ^2.6.0
+    '@tauri-apps/plugin-http': ^2.6.1
   testing:
     vitest: ^4.1.11
     yaml: ^2.9.0
