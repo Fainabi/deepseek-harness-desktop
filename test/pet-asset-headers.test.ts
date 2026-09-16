@@ -13,9 +13,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
  * 2. **取消清理**：`fetch_read_body` 读到 EOF 就关掉 Rust 侧的响应资源，于是
  *    fire-and-forget 的 `fetch_cancel` / `fetch_cancel_body` 必然收到
  *    `The resource id ... is invalid`；不吞掉就会让每次中止（切动画 / 关窗口）都冒一个
- *    unhandled rejection，被桌宠窗口的全局处理器记成 ERROR 日志刷屏。
+ *    unhandled rejection（2.6.1 起上游已用 `.catch` 吞掉，这里只锁行为）。
  *
- * 两处都由 pnpm patch 修在 `dist-js/index.js` + `index.cjs`：这里既锁「补丁在册且已装
+ * 响应头由 pnpm patch 修在 `dist-js/index.js` + `index.cjs`：这里既锁「补丁在册且已装
  * 进产物」，也打桩 `window.__TAURI_INTERNALS__.invoke` 跑真实 `fetch`（含中止路径）。
  */
 const ANIMATION_URL = 'https://raw.githubusercontent.com/PC2005-cloud/dsh-pet/e1ff8c1e4001878cbb80441262d530e16541f138/dsh-pet/assets/webm/%E5%BE%85%E6%9C%BA%E5%91%BC%E5%90%B8%E4%BC%91%E9%97%B2.webm'
@@ -85,17 +85,16 @@ describe('pet asset headers contract', () => {
 
   it('keeps the filter patch registered in the workspace and applied on disk', () => {
     const workspace = readFileSync(new URL('../pnpm-workspace.yaml', import.meta.url), 'utf8')
-    expect(workspace).toContain('@tauri-apps/plugin-http@2.6.0')
-    expect(workspace).toContain('patches/@tauri-apps__plugin-http@2.6.0.patch')
+    expect(workspace).toContain('@tauri-apps/plugin-http@2.6.1')
+    expect(workspace).toContain('patches/@tauri-apps__plugin-http@2.6.1.patch')
 
-    const patch = readFileSync(new URL('../patches/@tauri-apps__plugin-http@2.6.0.patch', import.meta.url), 'utf8')
+    const patch = readFileSync(new URL('../patches/@tauri-apps__plugin-http@2.6.1.patch', import.meta.url), 'utf8')
     expect(patch).toContain('ISO_8859_1_ONLY')
 
     for (const file of ['index.js', 'index.cjs']) {
       const bundle = readFileSync(new URL(`../node_modules/@tauri-apps/plugin-http/dist-js/${file}`, import.meta.url), 'utf8')
       expect(bundle).toContain('toResponseHeaders(responseHeaders)')
       expect(bundle).not.toContain('new Headers(responseHeaders)')
-      expect(bundle.match(/\.catch\(\(\) => \{\}\)/g)?.length).toBeGreaterThanOrEqual(2)
     }
   })
 
