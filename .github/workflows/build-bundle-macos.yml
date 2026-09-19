@@ -180,6 +180,9 @@ jobs:
             exit 1
           fi
 
+      # 必须同时产出 app：只给 `--bundles dmg` 时 tauri 会把 .app 当中间产物，打完 dmg
+      # 就删掉它（日志里的 `Cleaning .../bundle/macos/<name>.app`），后面的签名/公证
+      # 校验步骤便找不到目标。普通安装包不带 --bundles、走 targets: all，两者都产出。
       - name: Build offline package
         if: steps.check.outputs.should_run == 'true'
         env:
@@ -190,7 +193,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: pnpm tauri build --target ${{ matrix.target }} --bundles dmg
+        run: pnpm tauri build --target ${{ matrix.target }} --bundles app,dmg
 
       - name: Verify signature and notarization
         if: steps.check.outputs.should_run == 'true'
