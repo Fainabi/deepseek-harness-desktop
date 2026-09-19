@@ -73,18 +73,20 @@ jobs:
           dsh-tag: ${{ inputs.dsh_tag }}
           dsh-commit: ${{ inputs.dsh_commit }}
 
+      # 只出 deb：AppImage 由 linuxdeploy 打包，而离线包往 AppDir 里塞了 392 MiB /
+      # 一万余文件（node 205M + dsh 167M + pnpm 20M），linuxdeploy 在这种规模的 AppDir
+      # 上直接失败（`failed to run linuxdeploy`，实测 18s 即退出），普通安装包没有这份
+      # 资源所以不受影响。内网离线部署本来也以 deb 为主。AppImage 的支持留作后续单独排查。
       - name: Build offline packages
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm tauri build --bundles appimage,deb
+        run: pnpm tauri build --bundles deb
 
       - name: Upload build outputs
         uses: actions/upload-artifact@v6
         with:
           name: release-bundle-linux
-          path: |
-            src-tauri/target/release/bundle/appimage/*.AppImage
-            src-tauri/target/release/bundle/deb/*.deb
+          path: src-tauri/target/release/bundle/deb/*.deb
           if-no-files-found: error
           retention-days: 7
