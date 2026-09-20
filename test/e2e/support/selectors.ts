@@ -114,3 +114,57 @@ export function configLanguageOption(language: Language): string {
 
 /** i18n 持久化 key（`src/i18n/index.detector.ts:7`）。 */
 export const LANGUAGE_STORAGE_KEY = 'deepseek-harness-desktop-language'
+
+/** 通用确认弹窗根节点（`src/components/modal.tsx` 的 `AlertDialog.Dialog`）。 */
+export const MODAL = '[data-testid="dsh-modal"]'
+
+/** 确认弹窗的语义状态属性：`warning` / `danger` / `accent` 等（`ModalProps.status`）。 */
+export const MODAL_STATUS_ATTR = 'data-status'
+
+/** 确认弹窗的「取消」按钮。 */
+export const MODAL_CANCEL = '[data-testid="dsh-modal-cancel"]'
+
+/** 确认弹窗的「确定」按钮。 */
+export const MODAL_CONFIRM = '[data-testid="dsh-modal-confirm"]'
+
+/** 单个档案行（`src/ui/config/profile.tsx`）。 */
+export const PROFILE_ROW = '[data-testid="dsh-profile-row"]'
+
+/** 档案行的机器可读标识：`data-profile-id` / `-name` / `-active`。 */
+export const PROFILE_ROW_ID_ATTR = 'data-profile-id'
+export const PROFILE_ROW_NAME_ATTR = 'data-profile-name'
+export const PROFILE_ROW_ACTIVE_ATTR = 'data-profile-active'
+
+/** 行内「备份」Chip；同一行内还可读 `data-profile-id` 定位。 */
+export const PROFILE_BACKUP = '[data-testid="dsh-profile-backup"]'
+
+/** 行内「克隆」Chip。 */
+export const PROFILE_CLONE = '[data-testid="dsh-profile-clone"]'
+
+/** 行内「删除」Chip；默认档案的该 Chip 带 `data-profile-default="true"`。 */
+export const PROFILE_REMOVE = '[data-testid="dsh-profile-remove"]'
+
+/** 默认档案的说明文案（仅默认档案行渲染）。 */
+export const PROFILE_ROW_DEFAULT_DESC = '[data-testid="dsh-profile-row-default-desc"]'
+
+/** 「新建档案」触发按钮。 */
+export const PROFILE_NEW = '[data-testid="dsh-profile-new"]'
+
+/** 新建档案的内联输入框与两个动作按钮。 */
+export const PROFILE_NEW_INPUT = '[data-testid="dsh-profile-new-input"]'
+export const PROFILE_NEW_CONFIRM = '[data-testid="dsh-profile-new-confirm"]'
+export const PROFILE_NEW_CANCEL = '[data-testid="dsh-profile-new-cancel"]'
+
+/** 克隆档案对话框的名称输入框与「克隆」按钮。 */
+export const PROFILE_CLONE_INPUT = '[data-testid="dsh-profile-clone-input"]'
+export const PROFILE_CLONE_CONFIRM = '[data-testid="dsh-profile-clone-confirm"]'
+
+/** 按档案 id 定位行内元素：行与三个行内 Chip 都带同一个 `data-profile-id`。 */
+export function profileRow(id: string): string {
+  return `${PROFILE_ROW}[${PROFILE_ROW_ID_ATTR}="${id}"]`
+}
+
+/** 按档案 id 定位该行的「删除」Chip。 */
+export function profileRemove(id: string): string {
+  return `${PROFILE_REMOVE}[${PROFILE_ROW_ID_ATTR}="${id}"]`
+}

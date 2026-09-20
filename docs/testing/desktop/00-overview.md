@@ -4,7 +4,7 @@
 > 规范来源：[E2E 测试规范](../../specs/desktop.test.md)、[桌面端开发规范](../../specs/agents.desktop.md)
 > 流程来源：[渐进式测试推进规则](../progressive.md)
 > 同构套件：[插件用例集](../plugins/00-overview.md)
-> 状态：批次日进行中——`00` 总览已落地，`01`、`02` 已接线（26 条），`03`–`11` 待接线（见 §8 G2/G3/G4）
+> 状态：批次日进行中——`00` 总览已落地，`01`、`02`、`03` 已接线（32 条），`04`–`11` 待接线（见 §8 G2/G3/G4）
 
 ---
 
@@ -174,7 +174,7 @@
 | `10-system-integration.md` | `10-001`–`10-008`、`10-015`、`10-016`、`10-020`、`10-024`、`10-027` | 13 | 7 / 4 / 2 / 0 | 18 |
 | `11-assembly-isolation-privacy.md` | `11-001`、`11-002`、`11-011`、`11-015`、`11-016`、`11-020`、`11-023`、`11-027`、`11-030`、`11-033` | 10 | 8 / 1 / 1 / 0 | 25 |
 
-合计 **109** 条 L3 用例：正向 67 / 异常 28 / 边界 13 / 低频 1；另有 **106** 条纯后端逻辑条目标记为「单元测试层」（见各模块对应小节），不计入 E2E。已接线 26 条（`01` 15 条 + `02` 11 条）。
+合计 **109** 条 L3 用例：正向 67 / 异常 28 / 边界 13 / 低频 1；另有 **106** 条纯后端逻辑条目标记为「单元测试层」（见各模块对应小节），不计入 E2E。已接线 32 条（`01` 15 条 + `02` 11 条 + `03` 6 条）。
 
 ### 7.2 关键来源 → 覆盖位置
 
@@ -231,8 +231,8 @@
 | 编号 | 类型 | 内容 | 影响 |
 | --- | --- | --- | --- |
 | G1 | 事实 | 前端产物 `dist/` 与 debug 二进制是否最新，取决于最近一次 `pnpm build` / `cargo build` | 二进制陈旧时全部用例的失败不可归因，需先重建 |
-| G2 | 已解决 | `desktop` project 已配置：`vitest.desktop.config.ts`、`test:e2e:desktop` 脚本、`test/e2e/desktop/` 均就位 | 已接线批次为 `01`（15 条）、`02`（11 条），共 26 条 |
-| G3 | 已解决 | `test/e2e/support/selectors.ts` 已建立；壳层选择器随 `01`、`02` 批次逐批补齐（`02` 批次的配置对话框模块补 `dsh-config-*` 与导航项 `aria-current` 选中态，语言与主题模块补 `dsh-config-language-*` / `dsh-shell-iframe` / `dsh-setup-preinstall-skip`） | 后续批次仍须按「先补选择器、再写用例」推进 |
+| G2 | 已解决 | `desktop` project 已配置：`vitest.desktop.config.ts`、`test:e2e:desktop` 脚本、`test/e2e/desktop/` 均就位 | 已接线批次为 `01`（15 条）、`02`（11 条）、`03`（6 条），共 32 条 |
+| G3 | 已解决 | `test/e2e/support/selectors.ts` 已建立；壳层选择器随批次逐批补齐（`02` 补配置对话框与语言主题，`03` 补 `dsh-profile-*` 与共享 `dsh-modal*`，并给档案行加 `data-profile-id`/`-name`/`-active` 机器可读标记） | 后续批次仍须按「先补选择器、再写用例」推进 |
 | G4 | 已解决 | L3 宿主编排已落地：`test/e2e/support/desktop-host.ts`（拉起真实二进制 + 绑定 WDIO 会话 + 收尾），菜单操作为 `test/e2e/support/navbar-menu.ts`、配置对话框生命周期为 `test/e2e/support/config-dialog.ts` | 运行前置：`dist/` 与 `tauri build --debug --no-bundle` 产物；`02` 批次起含**真实装配车道**用例（不置 `disableDownload`，需可装配的运行时缓存） |
 | G5 | 冲突 | `desktop.test.md` §6 称 debug 端口固定 `3081` 不可改；实现存在占用递增逻辑（`launch.rs:66`），`capabilities/default.json:4` 亦声明 NOT fixed | 端口前置按「实测空闲」执行，不假设端口恒定 |
 | G6 | 缺口 | 失败产物目录 `test/e2e/.artifacts/` 仅有文档约定与 `.gitignore`，无实现 | 失败定位在接线前只能依赖日志 |

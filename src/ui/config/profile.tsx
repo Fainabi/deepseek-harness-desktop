@@ -254,6 +254,10 @@ export function ConfigProfile() {
           {profiles.map(profile => (
             <Item
               key={profile.id}
+              data-testid="dsh-profile-row"
+              data-profile-id={profile.id}
+              data-profile-name={profile.name}
+              data-profile-active={String(profile.active)}
               onClick={() => onActivate(profile.id)}
               left={(
                 <>
@@ -261,7 +265,7 @@ export function ConfigProfile() {
                     {profile.name}
                   </Label>
                   <If cond={profile.default}>
-                    <Description className="min-w-0 text-xs text-muted">
+                    <Description className="min-w-0 text-xs text-muted" data-testid="dsh-profile-row-default-desc">
                       <Ellipsis>{t('profiles.default_desc')}</Ellipsis>
                     </Description>
                   </If>
@@ -285,6 +289,8 @@ export function ConfigProfile() {
                   <Chip
                     className="rounded-md"
                     size="sm"
+                    data-testid="dsh-profile-backup"
+                    data-profile-id={profile.id}
                     onClick={(event) => {
                       event.stopPropagation()
                       setActiveView({ profile: profile.id })
@@ -296,6 +302,8 @@ export function ConfigProfile() {
                     className={`rounded-md${busy ? ' cursor-not-allowed opacity-50' : ' cursor-pointer'}`}
                     color="accent"
                     size="sm"
+                    data-testid="dsh-profile-clone"
+                    data-profile-id={profile.id}
                     onClick={(event) => {
                       event.stopPropagation()
                       if (!busy)
@@ -309,6 +317,9 @@ export function ConfigProfile() {
                     variant={profile.default ? 'soft' : 'primary'}
                     color={profile.default ? 'default' : 'danger'}
                     size="sm"
+                    data-testid="dsh-profile-remove"
+                    data-profile-id={profile.id}
+                    data-profile-default={String(profile.default)}
                     onClick={(event) => {
                       event.stopPropagation()
                       if (profile.default || busy)
@@ -333,13 +344,14 @@ export function ConfigProfile() {
                   className="h-8 flex-1 rounded-md"
                   placeholder={t('profiles.name_placeholder')}
                   value={name}
+                  data-testid="dsh-profile-new-input"
                   onChange={e => setName(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter')
                       commitCreate()
                   }}
                 />
-                <Button size="sm" variant="tertiary" className="h-8 rounded-md" onPress={cancelCreate}>
+                <Button size="sm" variant="tertiary" className="h-8 rounded-md" data-testid="dsh-profile-new-cancel" onPress={cancelCreate}>
                   {t('profiles.create_cancel')}
                 </Button>
                 <Button
@@ -347,6 +359,7 @@ export function ConfigProfile() {
                   variant="primary"
                   className="h-8 rounded-md"
                   isDisabled={!name.trim() || busy}
+                  data-testid="dsh-profile-new-confirm"
                   onPress={commitCreate}
                 >
                   {t('profiles.create_confirm')}
@@ -359,6 +372,7 @@ export function ConfigProfile() {
               variant="tertiary"
               className="flex w-full rounded-md"
               isDisabled={busy}
+              data-testid="dsh-profile-new"
             >
               <Plus className="size-3.5" />
               <span>{t('profiles.new_profile')}</span>
@@ -394,6 +408,7 @@ export function ConfigProfile() {
                   className="h-8 rounded-md w-full my-2"
                   placeholder={t('profiles.clone_name_placeholder')}
                   value={cloneName}
+                  data-testid="dsh-profile-clone-input"
                   onChange={e => setCloneName(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter')
@@ -414,6 +429,7 @@ export function ConfigProfile() {
                   className="rounded-md"
                   variant="primary"
                   isDisabled={!cloneName.trim() || busy}
+                  data-testid="dsh-profile-clone-confirm"
                   onPress={commitClone}
                 >
                   {busy ? t('profiles.clone_cloning') : t('profiles.clone_confirm')}

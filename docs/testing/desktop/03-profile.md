@@ -1,9 +1,10 @@
 # 档案管理与校验规则
 
 > 层级：L3（真实 Tauri 窗口）
-> 自动化：`test/e2e/desktop/03-profile.e2e.ts`（待建立）
+> 自动化：`test/e2e/desktop/03-profile.e2e.ts`
 > 前置：见 `00-overview.md` §5.1；`dist/` 与 debug 二进制已按最新源码重建
 > 运行：`vitest --project desktop -- test/e2e/desktop/03-profile.e2e.ts`
+> 车道：壳层车道（`startDesktopApp({ disableDownload: true })`）——六条用例只触碰「档案」面板与档案命令层，不需要 dsh 服务与 iframe
 
 档案是数据隔离的单位：列表、新建、切换、克隆、删除，以及名称规范化、初始化形态与跨档案隔离。
 
@@ -41,7 +42,7 @@
 [层级] L3（真实 Tauri 窗口）
 [类型] 正向
 [追踪] 批次 03；`src/ui/config/profile.tsx:34-40`、`:254-269`
-[自动化] 待接线（`test/e2e/desktop/03-profile.e2e.ts`）
+[自动化] 已接线（`test/e2e/desktop/03-profile.e2e.ts`）
 [前置条件] 应用处于 `ready`；至少存在 1 个档案
 [测试数据] 选择器 `dsh-profile-row`、`dsh-profile-row-default-desc`
 [测试步骤] 1. 打开「档案」面板。2. 读取档案行数量与每行名称。3. 读取带默认标记的行。
@@ -54,7 +55,7 @@
 [层级] L3（真实 Tauri 窗口）
 [类型] 正向
 [追踪] 批次 03；`src/ui/config/profile.tsx:194-208`
-[自动化] 待接线（同上）
+[自动化] 已接线（同上）
 [前置条件] TC-DSK-L3-03-001 通过；新建名称未被占用
 [测试数据] 名称 `e2e-profile-<时间戳>`
 [测试步骤] 1. 点击「新建档案」。2. 在输入框填入测试名称。3. 点击「确定」。4. 等待列表刷新。5. 读取列表名称集合与输入区状态。
@@ -71,7 +72,7 @@
 [层级] L3（真实 Tauri 窗口）
 [类型] 异常
 [追踪] `src/ui/config/profile.tsx:144-162`
-[自动化] 待接线（同上）
+[自动化] 已接线（同上）
 [前置条件] 存在至少 2 个档案，且当前激活档案非目标档案
 [测试数据] 目标档案：任一非激活档案
 [测试步骤] 1. 记录当前激活档案。2. 点击目标档案行。3. 在确认框中取消。4. 读取当前激活档案。
@@ -80,21 +81,31 @@
 
 ---
 
-### 选择器契约（待补）
+### 选择器契约
+
+已随本批落地，常量统一登记在 `test/e2e/support/selectors.ts`。行与三个行内 Chip 都带同一个 `data-profile-id`，据此按档案 id 定位（`profileRow(id)` / `profileRemove(id)`），不依赖 DOM 层级或文本。
 
 | `data-testid` | 元素 | 状态 |
 | --- | --- | --- |
-| `dsh-profile-row` | 单个档案行 | 待补 |
-| `dsh-profile-row-default-desc` | 默认档案说明文案 | 待补 |
-| `dsh-profile-new` | 「新建档案」按钮 | 待补 |
-| `dsh-profile-new-input` | 新建名称输入框 | 待补 |
-| `dsh-profile-new-confirm` | 新建「确定」按钮 | 待补 |
-| `dsh-profile-new-cancel` | 新建「取消」按钮 | 待补 |
-| `dsh-profile-clone` | 「克隆」Chip | 待补 |
-| `dsh-profile-clone-input` | 克隆名称输入框 | 待补 |
-| `dsh-profile-clone-confirm` | 克隆「确定」按钮 | 待补 |
-| `dsh-profile-remove` | 「删除」Chip | 待补 |
-| `dsh-profile-backup` | 「备份」Chip | 待补 |
+| `dsh-profile-row` | 单个档案行；附 `data-profile-id` / `-name` / `-active` | 已补 |
+| `dsh-profile-row-default-desc` | 默认档案说明文案（仅默认档案行渲染） | 已补 |
+| `dsh-profile-new` | 「新建档案」按钮 | 已补 |
+| `dsh-profile-new-input` | 新建名称输入框 | 已补 |
+| `dsh-profile-new-confirm` | 新建「确定」按钮 | 已补 |
+| `dsh-profile-new-cancel` | 新建「取消」按钮 | 已补 |
+| `dsh-profile-clone` | 「克隆」Chip（附 `data-profile-id`） | 已补 |
+| `dsh-profile-clone-input` | 克隆名称输入框 | 已补 |
+| `dsh-profile-clone-confirm` | 克隆「确定」按钮 | 已补 |
+| `dsh-profile-remove` | 「删除」Chip（附 `data-profile-id` / `-default`） | 已补 |
+| `dsh-profile-backup` | 「备份」Chip（附 `data-profile-id`） | 已补 |
+
+切换/删除的确认框由共享 `src/components/modal.tsx` 承载，本批为其补上通用选择器（后续批次复用）：
+
+| `data-testid` | 元素 | 状态 |
+| --- | --- | --- |
+| `dsh-modal` | 确认弹窗根节点；`data-status` 给出 `warning` / `danger` 等语义 | 已补 |
+| `dsh-modal-cancel` | 确认弹窗「取消」 | 已补 |
+| `dsh-modal-confirm` | 确认弹窗「确定」 | 已补 |
 
 ---
 
@@ -169,10 +180,10 @@
 [层级] L3（真实 Tauri 窗口）
 [类型] 正向
 [追踪] `src-tauri/src/service/profile/mod.rs:289`；`src-tauri/src/service/profile/mod.rs:1043`
-[自动化] 待接线（`test/e2e/desktop/03-profile.e2e.ts`）
-[前置条件] 配置对话框打开在「档案」面板；`$E2E_HOME/home/.dsh.dev/profiles` 可写（§5.3）
+[自动化] 已接线（`test/e2e/desktop/03-profile.e2e.ts`）
+[前置条件] 应用已就绪（命令层直连，不需要服务与 iframe）；`$E2E_HOME/home/.dsh.dev/profiles` 可写（§5.3）
 [测试数据] 名称 `My Work Space`、`  dev--stage  `、`a_b-c`
-[测试步骤] 1. 依次用三个名称新建档案。2. 每次创建后读取 `get_profiles` 返回行的 `id`。3. 复查 `profiles/` 下的目录名。
+[测试步骤] 1. 依次用三个名称调用 `create_profile` 新建档案。2. 每次创建后读取 `get_profiles` 返回行的 `id`。3. 复查 `profiles/` 下的目录名。
 [预期结果] 1. 三次创建均成功返回。2. 对应 `id` 依次为 `my-work-space`、`dev-stage`、`a-b-c`。3. 目录名与 `id` 一致：小写、连续分隔符合并为一个 `-`、首尾 `-` 被去除。
 [清理] 删除本用例新建的三个档案目录；`DELETE /session/<id>`
 
@@ -186,10 +197,10 @@
 [层级] L3（真实 Tauri 窗口）
 [类型] 正向
 [追踪] `src-tauri/src/service/profile/mod.rs:879`、`:707`、`:888`
-[自动化] 待接线（`test/e2e/desktop/03-profile.e2e.ts`）
-[前置条件] 配置对话框打开在「档案」面板；`profiles/init-check` 不存在
+[自动化] 已接线（`test/e2e/desktop/03-profile.e2e.ts`）
+[前置条件] 应用已就绪（命令层直连）；`profiles/init-check` 不存在
 [测试数据] 名称 `init-check`
-[测试步骤] 1. 新建档案 `init-check`。2. 读取该档案目录下的文件清单。3. 读取 `package.json` 的 `name`/`private`/`dependencies`/`dsh.profile.bundles`。4. 读取 `cordis.patch.yml`、`pnpm-workspace.yaml`、`.npmrc`。
+[测试步骤] 1. 调用 `create_profile` 新建档案 `init-check`。2. 读取该档案目录下的文件清单。3. 读取 `package.json` 的 `name`/`private`/`dependencies`/`dsh.profile.bundles`。4. 读取 `cordis.patch.yml`、`pnpm-workspace.yaml`、`.npmrc`。
 [预期结果] 1. 创建成功。2. 目录下恰含 `package.json`、`cordis.patch.yml`、`pnpm-workspace.yaml`、`.npmrc`。3. `name` 为 `dsh-profile-init-check`；`private` 为 `true`；`dependencies` 为空对象；`dsh.profile.bundles` 为 `@deepseek-ai/dsh-base` 与 `@deepseek-ai/dsh-web-app`。4. `cordis.patch.yml` 为 3 行注释加 `[]`；`pnpm-workspace.yaml` 含 `packages`、`nodeLinker: hoisted`、`autoInstallPeers: false`、`minimumReleaseAgeExclude: zod@4.4.3`；`.npmrc` 含 `confirmModulesPurge=false`。
 [清理] 删除档案目录；`DELETE /session/<id>`
 
@@ -203,12 +214,12 @@
 [层级] L3（真实 Tauri 窗口）
 [类型] 正向
 [追踪] `src-tauri/src/service/profile/mod.rs:99`；`src-tauri/src/service/plugin/installed.rs:37`
-[自动化] 待接线（`test/e2e/desktop/03-profile.e2e.ts`）
-[前置条件] 配置对话框打开在「档案」面板；网络或本地包源可用
-[测试数据] 档案 `iso-a`、`iso-b`；同一个插件包
-[测试步骤] 1. 新建 `iso-a` 与 `iso-b`。2. 在 `iso-a` 下安装该插件后读取两个档案的 `package.json` 与 `node_modules`。3. 在 `iso-a` 为活动档案时记录插件操作解析到的目录，切到 `iso-b` 后重复。
-[预期结果] 1. 两个档案目录均创建成功。2. 依赖条目只出现在 `iso-a` 的 `package.json` 与 `node_modules` 中，`iso-b` 不受影响。3. 解析目录分别为 `$E2E_HOME/home/.dsh.dev/profiles/iso-a` 与 `.../profiles/iso-b`，由 `active_profile` 决定。
-[清理] 删除两个档案目录；`DELETE /session/<id>`
+[自动化] 已接线（`test/e2e/desktop/03-profile.e2e.ts`）
+[前置条件] 应用已就绪（命令层直连）；`$E2E_HOME/home/.dsh.dev/profiles` 可写（§5.3）
+[测试数据] 档案 `iso-a`、`iso-b`；同一个插件 id `dsh-e2e-iso`
+[测试步骤] 1. 调用 `create_profile` 新建 `iso-a` 与 `iso-b`，读取两者的 `package.json` 与 `node_modules`。2. 仅在 `iso-a` 的 `package.json` 与 `node_modules` 中构造该插件的安装产物（见 G-D03-6）。3. `set_active_profile('iso-a')` 后经 `get_dsh_plugins` 读取解析结果，并用 `disable_dsh_plugin` 执行一次真实写入；切到 `iso-b` 后重复。
+[预期结果] 1. 两个档案目录均创建成功，初始 `dependencies` 均为 `{}`，`iso-b` 无 `node_modules`。2. 依赖条目只出现在 `iso-a` 的 `package.json` 与 `node_modules` 中：`iso-a` 落盘 `disabled-plugins.json` 且 bundles 移除该插件，`iso-b` 既不出现该插件也无任何写入。3. 解析目录分别为 `$E2E_HOME/home/.dsh.dev/profiles/iso-a` 与 `.../profiles/iso-b`：`get_dsh_plugins` 与 `disable_dsh_plugin` 的结果随 `active_profile` 改变（`iso-b` 下报 `DISABLE_NOT_INSTALLED`）。
+[清理] 复位 `active_profile` 并删除两个档案目录；`DELETE /session/<id>`
 
 ### 单元测试层（已从 L3 E2E 裁剪）
 
@@ -242,8 +253,8 @@
 
 - **G-D03-4**：本文件全部用例经命令层（`create_profile` / `set_active_profile` / `get_profiles` / 克隆）与磁盘状态断言；界面呈现与提示文案归「档案管理」模块，不重复断言。
 - **G-D03-5**：`create` 不拦截 `tauri`（`mod.rs:51`）与 `safe`（`mod.rs:59`），用户可占用引导与安全档案名。被占用后引导流程与安全模式的实际行为未验证，属已知边界。
-- **G-D03-6**：TC-DSK-L3-03-014 的「插件操作解析到哪个目录」当前无只读出口，接线时需借安装产物或日志间接断言。
+- **G-D03-6**：TC-DSK-L3-03-014 的「插件操作解析到哪个目录」无只读出口，接线时借安装产物间接断言（已落地）。壳层车道没有 dsh 运行时（node/pnpm/dsh），装不了真插件，因此该插件在 `iso-a` 下的安装产物由用例按真实落盘形态构造（`package.json` 的 `dependencies` + `node_modules/<id>/package.json`），随后**全部断言都走真实命令层**：`get_dsh_plugins` 读的是 `profile_dir(active_profile)` 的清单，`disable_dsh_plugin` 写的也是该目录（`installed.rs:37`）。解析目录随 `active_profile` 在 iso-a / iso-b 之间切换，即是本用例要证明的隔离面。
 - **G-D03-7**：列表的展示名（`mod.rs:224`、`:1104`）、跳过点目录与 `node_modules`、`web` 目录缺失时的合成行、默认优先排序（`mod.rs:254`、`:283`）不在本文件 12 个 Case 内。
 - **G-D03-8**：TC-DSK-L3-03-013 需构造不可写目录（改属主/权限），Windows 上需管理员；接线时按平台选择可用手段。
 - **假设**：本文件全部路径均在 `$E2E_HOME` 之下（`00-overview.md` §5.3）。文中 `$DSH_HOME/profiles/<id>` 指 `$E2E_HOME/home/.dsh.dev/profiles/<id>`（debug）。**不得**依赖设置 `DSH_HOME` 来隔离——debug 构建恒用 `<home>/.dsh.dev` 并忽略 `DSH_HOME`（`src-tauri/src/config/runtime.rs:471-485`），隔离只能靠重定向 `USERPROFILE`/`HOME`；`web`、`tauri`、`safe` 档案不得由用例创建或删除。
-- **G-D03-9**：本文件是**破坏性最强**的一批用例（新建/删除档案、改写 home 层补丁）。所有用例必须在重定向后的 `$E2E_HOME/home/.dsh.dev` 内运行；在脚手架实现 §5.3 的重定向与失败关闭校验之前**不得执行**。
+- **G-D03-9**：本文件是**破坏性最强**的一批用例（新建/删除档案、切换 `active_profile`）。所有用例必须在重定向后的 `$E2E_HOME/home/.dsh.dev` 内运行。接线时已在 `beforeAll` 落实**失败关闭**校验（`desktop.test.md` §5.2 / §6.1）：经 `get_runtime_info` 读出 `data_dir`，断言其落在本次运行的隔离根之下，否则整批直接失败而不是在真实 `~/.dsh.dev` 上动手；每条用例结束复位 `active_profile` 并删除本批新建的档案（`web`/`tauri`/`safe` 永不被创建或删除）。
