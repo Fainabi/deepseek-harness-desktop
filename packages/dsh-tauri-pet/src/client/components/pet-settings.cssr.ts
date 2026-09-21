@@ -113,4 +113,13 @@ export default c([
     lineHeight: '18px',
     color: 'var(--dsw-alias-state-error-primary, var(--dsw-alias-danger-text, #ff7a7a))',
   }),
+  // 环境能力提示（原生 Wayland 下桌宠无法置顶）：常驻而非一次性报错，用弱化配色。
+  c('.dshp-pet__notice', {
+    padding: '10px 12px',
+    fontSize: '12px',
+    lineHeight: '18px',
+    borderRadius: '10px',
+    border: '1px solid var(--dsw-alias-border-weak, rgba(127,127,127,0.2))',
+    color: 'var(--dsw-alias-label-secondary, var(--dsw-alias-label-primary))',
+  }),
 ])

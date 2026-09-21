@@ -21,6 +21,8 @@ export const pet = defineStore({
     codexPets: [] as PetListItem[],
     /** 待注入的新会话草稿（sessionId → 文本）。 */
     prefills: {} as Record<string, string>,
+    /** 当前环境能否让桌宠窗口置顶并定位；`null` 为尚未读取（issue #649）。 */
+    overlaySupported: null as boolean | null,
   }),
   actions: {
     /** 开始一次状态拉取，返回其轮次。 */
@@ -45,6 +47,9 @@ export const pet = defineStore({
       this.chatPets = input.chat
       this.codexPets = input.codex
       this.catalogLoaded = true
+    },
+    setOverlaySupported(supported: boolean): void {
+      this.overlaySupported = supported
     },
     setCodexPets(list: PetListItem[]): void {
       this.codexPets = list

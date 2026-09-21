@@ -2,6 +2,7 @@
 import type { PetListItem, PetSource, PetStatus, PresetPetItem } from './pet.types'
 import { invoke } from 'dsh-tauri/client'
 import {
+  CMD_GET_PET_OVERLAY_SUPPORTED,
   CMD_GET_PET_STATUS,
   CMD_IMPORT_PET,
   CMD_LIST_PETS,
@@ -13,6 +14,11 @@ import {
 
 export function getPetStatus(): Promise<PetStatus> {
   return invoke<PetStatus>(CMD_GET_PET_STATUS)
+}
+
+/** 当前环境能否让桌宠窗口置顶并定位（原生 Wayland 下不能，issue #649）。 */
+export function getPetOverlaySupported(): Promise<boolean> {
+  return invoke<boolean>(CMD_GET_PET_OVERLAY_SUPPORTED)
 }
 
 export function postPetEnabled(enabled: boolean): Promise<PetStatus> {

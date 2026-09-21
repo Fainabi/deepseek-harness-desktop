@@ -4,6 +4,7 @@ import { PET_HATCH_PROMPT } from '../constants'
 import { store } from '../store'
 import {
   getPetList,
+  getPetOverlaySupported,
   getPetStatus,
   getPresetPets,
   postActivePet,
@@ -30,6 +31,24 @@ export async function loadPetStatus(): Promise<PetStatus | null> {
   }
   catch (error) {
     console.error('[dsh-tauri-pet] load pet status failed:', error)
+    return null
+  }
+}
+
+/**
+ * Query：读取当前环境能否让桌宠窗口置顶并定位（issue #649）。
+ *
+ * 与清单装载分开发起：判定失败只应让提示不出现，不该把设置页整体打成错误态。
+ * 失败返回 `null` 并保留 store 中的旧值，重试交给下一次进入设置页。
+ */
+export async function loadPetOverlaySupported(): Promise<boolean | null> {
+  try {
+    const supported = await getPetOverlaySupported()
+    store.pet.setOverlaySupported(supported)
+    return supported
+  }
+  catch (error) {
+    console.error('[dsh-tauri-pet] load pet overlay support failed:', error)
     return null
   }
 }

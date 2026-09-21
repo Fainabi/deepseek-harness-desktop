@@ -24,6 +24,7 @@ const zh = {
   tabCodexDesc: '从 Codex 或压缩包中导入 Codex 宠物（支持 .zip 文件）',
   tabInstalledDesc: '宠物会管理对话串，并突出显示需要关注的事项',
   toggleFailed: '切换桌宠开关失败',
+  waylandNotice: '当前为 Wayland 会话，桌宠窗口无法置顶，会被其他窗口遮挡，也不会停在设定的位置。以 GDK_BACKEND=x11 启动可恢复正常显示。',
 }
 
 const en: Record<keyof typeof zh, string> = {
@@ -48,6 +49,7 @@ const en: Record<keyof typeof zh, string> = {
   tabCodexDesc: 'Import Codex pets from Codex or archives (.zip files supported)',
   tabInstalledDesc: 'Pets manage your conversation threads and highlight items that need attention',
   toggleFailed: 'Failed to toggle the pet',
+  waylandNotice: 'This is a Wayland session. The pet window cannot stay on top, so it is covered by other windows and does not stay where it was placed. Launch with GDK_BACKEND=x11 to restore normal display.',
 }
 
 export const locale = defineLocale(PLUGIN_ID, { zh, en })

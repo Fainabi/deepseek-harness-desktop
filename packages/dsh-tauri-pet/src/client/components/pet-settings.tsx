@@ -11,6 +11,7 @@ import {
   enablePet,
   importPetArchive,
   loadPetCatalog,
+  loadPetOverlaySupported,
   resizePet,
   togglePet,
 } from '../service/pet'
@@ -36,7 +37,7 @@ function readAsBase64(file: File): Promise<string> {
 export function PetSettings(props: PetSettingsProps): ReactElement {
   useMountStyle(petSettingsStyle, PET_SETTINGS_STYLES_ID)
   locale.useLocale()
-  const { status, presetPets, chatPets, codexPets, catalogLoaded } = useStore(store.pet)
+  const { status, presetPets, chatPets, codexPets, catalogLoaded, overlaySupported } = useStore(store.pet)
   const [tab, setTab] = useState<'pets' | 'codex'>('pets')
   // 无缓存（首次挂载）时进入加载态，避免空列表闪烁；有缓存直接渲染、后台静默刷新。
   const [busy, setBusy] = useState(() => !catalogLoaded)
@@ -52,6 +53,12 @@ export function PetSettings(props: PetSettingsProps): ReactElement {
     if (statusSize !== committedSizeRef.current)
       setSize(statusSize)
   })
+
+  // 判定在进程生命周期内不变，读到过就不再重复发起；上次失败（仍为 null）时重试。
+  useEffect(() => {
+    if (overlaySupported === null)
+      void loadPetOverlaySupported()
+  }, [overlaySupported])
 
   useEffect(() => {
     let cancelled = false
@@ -215,6 +222,9 @@ export function PetSettings(props: PetSettingsProps): ReactElement {
 
   return (
     <div className="dshp-pet__page">
+      {overlaySupported === false
+        ? <div className="dshp-pet__notice" role="status">{locale.text('waylandNotice')}</div>
+        : null}
       <div className="dshp-pet__tabs">
         <div className="dshp-pet__tab-list" role="tablist" aria-label={locale.text('name')}>
           <button

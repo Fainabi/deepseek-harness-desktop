@@ -26,7 +26,7 @@
 | 槽位：`conversation.input.left`（id `dsh-tauri-pet-prefill`，order 230） | `packages/dsh-tauri-pet/src/client/register/prefill.ts:14`、`packages/dsh-tauri-pet/src/client/constants/index.ts:19` |
 | 侧栏 DOM 补丁标记 `data-dsh-tauri-pet-icon`、`aria-pressed` | `packages/dsh-tauri-pet/src/client/constants/index.ts:38`、`packages/dsh-tauri-pet/src/client/register/sidebar-icon.utils.ts:15` |
 | 侧栏就绪轮询：500ms × 最多 30 次，外加 MutationObserver 看护 | `packages/dsh-tauri-pet/src/client/constants/index.ts:40`、`packages/dsh-tauri-pet/src/client/constants/index.ts:41`、`packages/dsh-tauri-pet/src/client/register/sidebar-icon.ts:105` |
-| Tauri 命令：`get_pet_status` / `set_pet_enabled` / `set_active_pet` / `set_pet_size` / `list_pets` / `import_pet` / `list_preset_pets` | `packages/dsh-tauri-pet/src/client/constants/index.ts:25` |
+| Tauri 命令：`get_pet_status` / `get_pet_overlay_supported` / `set_pet_enabled` / `set_active_pet` / `set_pet_size` / `list_pets` / `import_pet` / `list_preset_pets` | `packages/dsh-tauri-pet/src/client/constants/index.ts:25` |
 | 桥实现：postMessage + 15s 超时 | `packages/dsh-tauri/src/client/service/invoke.ts:12`、`packages/dsh-tauri/src/client/service/invoke.ts:44` |
 | 桌宠窗口 label `pet`，页面 `pet.html` | `src-tauri/src/desktop/pet.rs:30`、`src-tauri/src/desktop/pet.rs:303` |
 | 原生命令注册 | `src-tauri/src/desktop/builder.rs:945`、`src-tauri/src/desktop/builder.rs:952` |

@@ -17,6 +17,8 @@
 //!   时回退为非透明窗口继续工作。
 //! - `always_on_top` 在 Windows 上 Tauri 原生 API 即可保持置顶（BongoCat 为
 //!   额外稳定性用 SetWindowPos 循环轮询，本项目暂不做该平台特定加固）。
+//! - 原生 Wayland 会话下 `always_on_top` 与 `set_position` 都不生效，桌宠被主窗口
+//!   遮挡（issue #649）。判定见 `crate::pet_overlay_supported`，前端据此提示用户。
 
 use crate::config::{store_dat_file_name, STORE_PET_WINDOW_STATE_KEY};
 use serde::{Deserialize, Serialize};
@@ -285,6 +287,13 @@ pub fn move_pet_window<R: Runtime>(
 pub fn ensure_pet_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<WebviewWindow<R>> {
     if let Some(window) = app.get_webview_window(PET_WINDOW_LABEL) {
         return Ok(window);
+    }
+    if !crate::pet_overlay_supported_env() {
+        log::warn!(
+            "PET_OVERLAY_UNSUPPORTED: always-on-top and absolute positioning are unavailable on \
+             a native Wayland session; the pet window is covered by other windows and does not \
+             stay where it was placed. Launch with GDK_BACKEND=x11 to restore them."
+        );
     }
     let app_handle = app.clone();
     let (width, height) =

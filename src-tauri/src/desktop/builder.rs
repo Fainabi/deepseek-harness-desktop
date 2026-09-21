@@ -954,6 +954,7 @@ pub fn handler() -> impl Fn(Invoke<Wry>) -> bool + Send + Sync + 'static {
         crate::desktop::window::quit_app,
         crate::bridge::log_frontend,
         crate::bridge::get_pet_status,
+        crate::bridge::get_pet_overlay_supported,
         crate::bridge::set_pet_enabled,
         crate::bridge::set_active_pet,
         crate::bridge::set_pet_size,
