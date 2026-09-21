@@ -165,6 +165,15 @@ pub fn get_pet_status(app: AppHandle) -> PetStatus {
     status_from_setting(&config::get_store_dat_setting(&app))
 }
 
+/// 查询当前运行环境能否让桌宠窗口置顶并定位（issue #649）。
+///
+/// 结果由运行环境推导，与持久设置无关，因此不并入 [`PetStatus`]：
+/// [`status_from_setting`] 是 [`config::Setting`] 的纯函数，掺入环境变量会破坏这一点。
+#[tauri::command]
+pub fn get_pet_overlay_supported() -> bool {
+    crate::pet_overlay_supported_env()
+}
+
 /// 启用/关闭桌宠（持久化）。侧栏入口、设置页与桌宠窗口自身的关闭请求都走这里。
 ///
 /// 关闭即销毁窗口实例（不是 hide，见 `desktop::pet::set_pet_window_visible`：隐藏窗口里

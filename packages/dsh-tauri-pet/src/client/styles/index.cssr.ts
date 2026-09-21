@@ -59,6 +59,15 @@ export default c([
     lineHeight: '18px',
     color: 'var(--dsw-alias-state-error-primary)',
   }),
+  // 环境能力提示（原生 Wayland 下桌宠无法置顶）：常驻而非一次性报错，用弱化配色。
+  c('.dshp-pet__notice', {
+    padding: '10px 12px',
+    fontSize: '12px',
+    lineHeight: '18px',
+    borderRadius: '10px',
+    border: '1px solid var(--dsw-alias-border-weak)',
+    color: 'var(--dsw-alias-label-secondary)',
+  }),
 
   c('.dshp-pet__cards', { display: 'flex', flexDirection: 'column', gap: '12px' }),
   c('.dshp-pet__card-item', {

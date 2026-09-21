@@ -11,6 +11,7 @@ import {
   enablePet,
   importPetArchive,
   loadPetCatalog,
+  loadPetOverlaySupported,
   resizePet,
   togglePet,
 } from '../service/pet'
@@ -39,7 +40,7 @@ function readAsBase64(file: File): Promise<string> {
 /** 桌宠设置页：预设 / Chat / Codex 三类宠物卡片（选择、启用、取消选择）、开关、大小滑条与导入。 */
 export function PetSettings(props: PetSettingsProps): ReactElement {
   locale.useLocale()
-  const { status, presetPets, chatPets, codexPets, catalogLoaded } = useStore(store.pet)
+  const { status, presetPets, chatPets, codexPets, catalogLoaded, overlaySupported } = useStore(store.pet)
   const [tab, setTab] = useState<'pets' | 'codex'>('pets')
   const [busy, setBusy] = useState(() => !catalogLoaded)
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +57,12 @@ export function PetSettings(props: PetSettingsProps): ReactElement {
     if (statusSize !== committedSizeRef.current)
       setSize(statusSize)
   })
+
+  // 判定在进程生命周期内不变，读到过就不再重复发起；上次失败（仍为 null）时重试。
+  useEffect(() => {
+    if (overlaySupported === null)
+      void loadPetOverlaySupported()
+  }, [overlaySupported])
 
   useEffect(() => {
     let cancelled = false
@@ -215,6 +222,9 @@ export function PetSettings(props: PetSettingsProps): ReactElement {
 
   return (
     <div className="dshp-pet__page">
+      {overlaySupported === false
+        ? <div className="dshp-pet__notice" role="status">{locale.text('waylandNotice')}</div>
+        : null}
       <div className="dshp-pet__tabs">
         <SegmentedControl
           id={tabsId}
