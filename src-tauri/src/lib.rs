@@ -40,6 +40,17 @@ pub fn run() {
             eprintln!("[wayland] set {} for WebKitGTK EGL", applied.join("="));
         }
     }
+    // LOCAL-ONLY（本地自用，不提交上游）：原生 Wayland 下自动回退到 XWayland，让桌宠
+    // 窗口重新拿到置顶与绝对定位。上游只做提示、不改默认后端，因为整个应用改走
+    // XWayland 会影响 HiDPI 缩放与输入法，那是维护者的取舍（issue #649）。
+    //
+    // 写 `x11,wayland` 而非 `x11`：GDK 在首项打开失败时顺延，没有 XWayland 的环境下
+    // 应用仍能启动，代价是那里桌宠照旧被遮挡。已显式设过 GDK_BACKEND 时不覆盖。
+    if std::env::var_os("GDK_BACKEND").is_none() && !pet_overlay_supported_env() {
+        std::env::set_var("GDK_BACKEND", "x11,wayland");
+        // 与上面同理：logger::init() 尚未执行，此处只能用 eprintln。
+        eprintln!("[wayland] set GDK_BACKEND=x11,wayland so the pet window can stay on top (issue #649)");
+    }
     // 初始化日志系统
     logger::init();
 
