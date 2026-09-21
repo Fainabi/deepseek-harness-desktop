@@ -114,3 +114,51 @@ export function configLanguageOption(language: Language): string {
 
 /** i18n 持久化 key（`src/i18n/index.detector.ts:7`）。 */
 export const LANGUAGE_STORAGE_KEY = 'deepseek-harness-desktop-language'
+
+// ============================================================================
+// 「档案」面板（`src/ui/config/profile.tsx`）
+// ============================================================================
+
+/** 档案行根节点（`Item` → `Card`）；行上带 `data-profile-id`。 */
+export const PROFILE_ROW = '[data-testid="dsh-profile-row"]'
+
+/** 行上的档案 id 属性名；展示名由 manifest 派生（首字母大写），身份一律取 id。 */
+export const PROFILE_ROW_ID_ATTR = 'data-profile-id'
+
+/** 行内档案名节点；点击它等价于点击整行（避开右侧操作 Chip）。 */
+export const PROFILE_ROW_NAME = '[data-testid="dsh-profile-row-name"]'
+
+/** 默认档案行上的说明文案节点；只应出现在 `default === true` 的行。 */
+export const PROFILE_ROW_DEFAULT_DESC = '[data-testid="dsh-profile-row-default-desc"]'
+
+/** 新建档案入口、内联输入框与两个按钮。 */
+export const PROFILE_NEW = '[data-testid="dsh-profile-new"]'
+export const PROFILE_NEW_INPUT = '[data-testid="dsh-profile-new-input"]'
+export const PROFILE_NEW_CANCEL = '[data-testid="dsh-profile-new-cancel"]'
+export const PROFILE_NEW_CONFIRM = '[data-testid="dsh-profile-new-confirm"]'
+
+/** 克隆档案：入口 Chip、命名对话框输入框与两个按钮。 */
+export const PROFILE_CLONE = '[data-testid="dsh-profile-clone"]'
+export const PROFILE_CLONE_INPUT = '[data-testid="dsh-profile-clone-input"]'
+export const PROFILE_CLONE_CANCEL = '[data-testid="dsh-profile-clone-cancel"]'
+export const PROFILE_CLONE_CONFIRM = '[data-testid="dsh-profile-clone-confirm"]'
+
+/** 删除档案 Chip（默认档案上渲染为禁用态）。 */
+export const PROFILE_REMOVE = '[data-testid="dsh-profile-remove"]'
+
+/** 进入备份子视图的 Chip。 */
+export const PROFILE_BACKUP = '[data-testid="dsh-profile-backup"]'
+
+// ============================================================================
+// 通用确认弹窗（`src/components/modal.tsx`，overlastic `Modal`）
+// ============================================================================
+
+/** 弹窗根节点；带 `data-modal-status`（`default|accent|success|warning|danger`）。 */
+export const MODAL_DIALOG = '[data-modal-status]'
+
+/** 弹窗语义色属性名；`warning` 即「切换档案确认」的警告语义。 */
+export const MODAL_STATUS_ATTR = 'data-modal-status'
+
+/** 弹窗的取消 / 确认按钮。 */
+export const MODAL_CANCEL = '[data-testid="dsh-modal-cancel"]'
+export const MODAL_CONFIRM = '[data-testid="dsh-modal-confirm"]'

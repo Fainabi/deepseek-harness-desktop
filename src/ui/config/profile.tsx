@@ -254,14 +254,16 @@ export function ConfigProfile() {
           {profiles.map(profile => (
             <Item
               key={profile.id}
+              testId="dsh-profile-row"
+              data={{ 'data-profile-id': profile.id }}
               onClick={() => onActivate(profile.id)}
               left={(
                 <>
-                  <Label className="min-w-0 truncate text-sm font-medium text-ink">
+                  <Label className="min-w-0 truncate text-sm font-medium text-ink" data-testid="dsh-profile-row-name">
                     {profile.name}
                   </Label>
                   <If cond={profile.default}>
-                    <Description className="min-w-0 text-xs text-muted">
+                    <Description className="min-w-0 text-xs text-muted" data-testid="dsh-profile-row-default-desc">
                       <Ellipsis>{t('profiles.default_desc')}</Ellipsis>
                     </Description>
                   </If>
@@ -285,6 +287,7 @@ export function ConfigProfile() {
                   <Chip
                     className="rounded-md"
                     size="sm"
+                    data-testid="dsh-profile-backup"
                     onClick={(event) => {
                       event.stopPropagation()
                       setActiveView({ profile: profile.id })
@@ -296,6 +299,7 @@ export function ConfigProfile() {
                     className={`rounded-md${busy ? ' cursor-not-allowed opacity-50' : ' cursor-pointer'}`}
                     color="accent"
                     size="sm"
+                    data-testid="dsh-profile-clone"
                     onClick={(event) => {
                       event.stopPropagation()
                       if (!busy)
@@ -309,6 +313,7 @@ export function ConfigProfile() {
                     variant={profile.default ? 'soft' : 'primary'}
                     color={profile.default ? 'default' : 'danger'}
                     size="sm"
+                    data-testid="dsh-profile-remove"
                     onClick={(event) => {
                       event.stopPropagation()
                       if (profile.default || busy)
@@ -331,6 +336,7 @@ export function ConfigProfile() {
                   autoFocus
                   variant="secondary"
                   className="h-8 flex-1 rounded-md"
+                  data-testid="dsh-profile-new-input"
                   placeholder={t('profiles.name_placeholder')}
                   value={name}
                   onChange={e => setName(e.target.value)}
@@ -339,13 +345,14 @@ export function ConfigProfile() {
                       commitCreate()
                   }}
                 />
-                <Button size="sm" variant="tertiary" className="h-8 rounded-md" onPress={cancelCreate}>
+                <Button size="sm" variant="tertiary" className="h-8 rounded-md" data-testid="dsh-profile-new-cancel" onPress={cancelCreate}>
                   {t('profiles.create_cancel')}
                 </Button>
                 <Button
                   size="sm"
                   variant="primary"
                   className="h-8 rounded-md"
+                  data-testid="dsh-profile-new-confirm"
                   isDisabled={!name.trim() || busy}
                   onPress={commitCreate}
                 >
@@ -358,6 +365,7 @@ export function ConfigProfile() {
               onClick={startCreate}
               variant="tertiary"
               className="flex w-full rounded-md"
+              data-testid="dsh-profile-new"
               isDisabled={busy}
             >
               <Plus className="size-3.5" />
@@ -392,6 +400,7 @@ export function ConfigProfile() {
                   autoFocus
                   variant="secondary"
                   className="h-8 rounded-md w-full my-2"
+                  data-testid="dsh-profile-clone-input"
                   placeholder={t('profiles.clone_name_placeholder')}
                   value={cloneName}
                   onChange={e => setCloneName(e.target.value)}
@@ -407,12 +416,13 @@ export function ConfigProfile() {
                 )}
               </AlertDialog.Body>
               <AlertDialog.Footer>
-                <Button className="rounded-md" variant="tertiary" onPress={() => setCloning(null)}>
+                <Button className="rounded-md" variant="tertiary" data-testid="dsh-profile-clone-cancel" onPress={() => setCloning(null)}>
                   {t('profiles.clone_cancel')}
                 </Button>
                 <Button
                   className="rounded-md"
                   variant="primary"
+                  data-testid="dsh-profile-clone-confirm"
                   isDisabled={!cloneName.trim() || busy}
                   onPress={commitClone}
                 >

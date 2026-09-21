@@ -4,7 +4,7 @@
 > 规范来源：[E2E 测试规范](../../specs/desktop.test.md)、[桌面端开发规范](../../specs/agents.desktop.md)
 > 流程来源：[渐进式测试推进规则](../progressive.md)
 > 同构套件：[插件用例集](../plugins/00-overview.md)
-> 状态：批次日进行中——`00` 总览已落地，`01`、`02` 已接线（26 条），`03`–`11` 待接线（见 §8 G2/G3/G4）
+> 状态：批次日进行中——`00` 总览已落地，`01`、`02`、`03` 已接线（32 条），`04`–`11` 待接线（见 §8 G2/G3/G4）
 
 ---
 
@@ -39,7 +39,7 @@
 3. **用例文档目录**：`desktop.test.md` §3.2 写 `docs/testing/desktop/<序号>-<测试项>.md`，未定义 `00` 的用途。本次要求「从 00 编号开始」，**`00` 用作总览**（对齐插件套件），用例本体从 `01` 起。`desktop.test.md` §7 路线图的「批次 1–7」是**用例推进顺序**，与文件编号不再逐条对应，映射见 §3。
 4. **端口是否固定**：`desktop.test.md` §6 称 Debug 固定 `3081`、不可动态修改；实现侧存在占用后逐级递增（`src-tauri/src/service/workflow/launch.rs:66`）且 `src-tauri/capabilities/default.json:4` 明示 port is NOT fixed。**本套以「默认 3081 + 运行前实测空闲」为准**，不假设端口绝对不变（见 §8 G5）。
 5. **优先级口径**：用例编写通用口径为 P0–P3，本仓规范为 P1–P5。**以本仓规范为准**（见 §4），不混用。
-6. **`data-testid` 前置**：`desktop.test.md` §5 要求 E2E 必须用 `data-testid`；壳层（`src/`）已随 `01`、`02` 批次补齐所需选择器，常量统一登记在 `test/e2e/support/selectors.ts`。未接线批次的用例仍标注 `[自动化] 待接线`，并在各自模块末尾给出「选择器契约（待补）」（见 §8 G3）。
+6. **`data-testid` 前置**：`desktop.test.md` §5 要求 E2E 必须用 `data-testid`；壳层（`src/`）已随 `01`、`02`、`03` 批次补齐所需选择器，常量统一登记在 `test/e2e/support/selectors.ts`。未接线批次的用例仍标注 `[自动化] 待接线`，并在各自模块末尾给出「选择器契约（待补）」（见 §8 G3）。
 7. **E2E 是否允许 Mock 后端**：`desktop.test.md` §1 禁止在 E2E 层 Mock 后端命令。本套中「构造失败态」一律通过**真实前置**达成（改坏 `cordis.patch.yml`、占用端口、指向不可达更新源），不引入命令级 Mock。
 
 ---
@@ -118,6 +118,9 @@
 | 数据目录归属 | 解析出的 `data_dir` 必须落在 `$E2E_HOME/home` 之下 |
 | 收尾 | 每个 Spec 结束主动关闭应用并等待平滑退出；异常残留由脚本自行清理 |
 
+> **本机运行注意**：桌面 E2E 驱动真实窗口，**执行命令所在的前台终端会抢走应用窗口焦点**，而 react-aria 的菜单/下拉聚焦依赖 `document.hasFocus()`，被抢焦点时 `openMenu` 会以「菜单未获得焦点」失败，遮罩类断言也随之假失败（实测同一份代码前台跑 3 条挂、后台跑 6 条全绿）。本机验证请在后台/独立终端执行，CI（detached runner）不受影响。
+> **WebDriver 端口**：`test/e2e/support/desktop-host.ts` 按 `TAURI_WEBDRIVER_PORT` 取端口（默认 `4445`）。本机已有桌面实例占着 4445 时，用该变量另开一路即可，无需结束用户实例。
+
 ### 5.3 数据目录隔离
 
 以 `docs/specs/desktop.test.md` §6.1 为准。两类落盘位置同源于 home 根，重定向 `USERPROFILE`(Windows)/`HOME`(Unix) 即可一并隔离：
@@ -174,7 +177,7 @@
 | `10-system-integration.md` | `10-001`–`10-008`、`10-015`、`10-016`、`10-020`、`10-024`、`10-027` | 13 | 7 / 4 / 2 / 0 | 18 |
 | `11-assembly-isolation-privacy.md` | `11-001`、`11-002`、`11-011`、`11-015`、`11-016`、`11-020`、`11-023`、`11-027`、`11-030`、`11-033` | 10 | 8 / 1 / 1 / 0 | 25 |
 
-合计 **109** 条 L3 用例：正向 67 / 异常 28 / 边界 13 / 低频 1；另有 **106** 条纯后端逻辑条目标记为「单元测试层」（见各模块对应小节），不计入 E2E。已接线 26 条（`01` 15 条 + `02` 11 条）。
+合计 **109** 条 L3 用例：正向 67 / 异常 28 / 边界 13 / 低频 1；另有 **106** 条纯后端逻辑条目标记为「单元测试层」（见各模块对应小节），不计入 E2E。已接线 32 条（`01` 15 条 + `02` 11 条 + `03` 6 条）。
 
 ### 7.2 关键来源 → 覆盖位置
 
@@ -231,9 +234,9 @@
 | 编号 | 类型 | 内容 | 影响 |
 | --- | --- | --- | --- |
 | G1 | 事实 | 前端产物 `dist/` 与 debug 二进制是否最新，取决于最近一次 `pnpm build` / `cargo build` | 二进制陈旧时全部用例的失败不可归因，需先重建 |
-| G2 | 已解决 | `desktop` project 已配置：`vitest.desktop.config.ts`、`test:e2e:desktop` 脚本、`test/e2e/desktop/` 均就位 | 已接线批次为 `01`（15 条）、`02`（11 条），共 26 条 |
-| G3 | 已解决 | `test/e2e/support/selectors.ts` 已建立；壳层选择器随 `01`、`02` 批次逐批补齐（`02` 批次的配置对话框模块补 `dsh-config-*` 与导航项 `aria-current` 选中态，语言与主题模块补 `dsh-config-language-*` / `dsh-shell-iframe` / `dsh-setup-preinstall-skip`） | 后续批次仍须按「先补选择器、再写用例」推进 |
-| G4 | 已解决 | L3 宿主编排已落地：`test/e2e/support/desktop-host.ts`（拉起真实二进制 + 绑定 WDIO 会话 + 收尾），菜单操作为 `test/e2e/support/navbar-menu.ts`、配置对话框生命周期为 `test/e2e/support/config-dialog.ts` | 运行前置：`dist/` 与 `tauri build --debug --no-bundle` 产物；`02` 批次起含**真实装配车道**用例（不置 `disableDownload`，需可装配的运行时缓存） |
+| G2 | 已解决 | `desktop` project 已配置：`vitest.desktop.config.ts`、`test:e2e:desktop` 脚本、`test/e2e/desktop/` 均就位 | 已接线批次为 `01`（15 条）、`02`（11 条）、`03`（6 条），共 32 条 |
+| G3 | 已解决 | `test/e2e/support/selectors.ts` 已建立；壳层选择器随 `01`、`02`、`03` 批次逐批补齐（`02` 批次的配置对话框模块补 `dsh-config-*` 与导航项 `aria-current` 选中态，语言与主题模块补 `dsh-config-language-*` / `dsh-shell-iframe` / `dsh-setup-preinstall-skip`；`03` 批次补 `dsh-profile-*` 行标识 `data-profile-id` 与弹窗锚点 `dsh-modal-cancel`/`dsh-modal-confirm`/`data-modal-status`） | 后续批次仍须按「先补选择器、再写用例」推进 |
+| G4 | 已解决 | L3 宿主编排已落地：`test/e2e/support/desktop-host.ts`（拉起真实二进制 + 绑定 WDIO 会话 + 收尾），菜单操作为 `test/e2e/support/navbar-menu.ts`、配置对话框生命周期为 `test/e2e/support/config-dialog.ts` | 运行前置：`dist/` 与 `tauri build --debug --no-bundle` 产物；`02` 批次起含**真实装配车道**用例（不置 `disableDownload`，需可装配的运行时缓存）。WebDriver 端口取 `TAURI_WEBDRIVER_PORT`（默认 4445）：本机已有桌面实例占用 4445 时用该变量另开一路 |
 | G5 | 冲突 | `desktop.test.md` §6 称 debug 端口固定 `3081` 不可改；实现存在占用递增逻辑（`launch.rs:66`），`capabilities/default.json:4` 亦声明 NOT fixed | 端口前置按「实测空闲」执行，不假设端口恒定 |
 | G6 | 缺口 | 失败产物目录 `test/e2e/.artifacts/` 仅有文档约定与 `.gitignore`，无实现 | 失败定位在接线前只能依赖日志 |
 | G7 | 假设 | 需要联网的用例（`06` 预装引导/插件面板、`05` 核心下载、`09` 更新）默认允许联网；断网分支已在各用例 `[前置条件]` 中单独标注 | 离线环境下这些用例应被跳过而非判失败 |

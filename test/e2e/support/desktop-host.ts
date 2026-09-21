@@ -44,10 +44,25 @@ export const APP_TITLE = 'Deepseek Harness Desktop'
 export const MAIN_WEBVIEW = 'main'
 
 /**
- * 应用内嵌 WebDriver server 的固定端口（`@wdio/tauri-service` 的 embedded provider 默认 4445，
+ * 应用内嵌 WebDriver server 的端口（`@wdio/tauri-service` 的 embedded provider 默认 4445，
  * 应用侧由 `TAURI_WEBDRIVER_PORT` 门控）。
+ *
+ * 与 provider 同源读取 `TAURI_WEBDRIVER_PORT`：本机若正跑着另一个桌面实例（它同样占着
+ * 4445），可用 `TAURI_WEBDRIVER_PORT=<空闲端口>` 让本车道另开一路，无需结束用户实例。
+ * 未设置或为空时行为不变（4445）；非法值当场 Fail，避免 `Number()` 的 NaN / 越界值
+ * 落到 socket 层才报 `ERR_SOCKET_BAD_PORT`（或被 provider 当作未设置而静默回落 4445）。
  */
-export const WEBDRIVER_PORT = 4445
+function resolveWebDriverPort(): number {
+  const raw = process.env.TAURI_WEBDRIVER_PORT
+  if (raw === undefined || raw.trim() === '')
+    return 4445
+  const port = Number(raw)
+  if (!Number.isInteger(port) || port < 1 || port > 65535)
+    throw new Error(`TAURI_WEBDRIVER_PORT 非法：${JSON.stringify(raw)}（需 1–65535 的整数）`)
+  return port
+}
+
+export const WEBDRIVER_PORT = resolveWebDriverPort()
 
 /** 下载缓存根：跨运行复用，**不随 scratch home 删除**。 */
 export const DOWNLOAD_CACHE_DIR = join(tmpdir(), 'dsh-e2e-download-cache')
@@ -174,6 +189,7 @@ export async function startDesktopApp(options: StartDesktopAppOptions = {}): Pro
 
   capabilities['wdio:tauriServiceOptions'] = {
     ...capabilities['wdio:tauriServiceOptions'],
+    embeddedPort: WEBDRIVER_PORT,
     env,
     startTimeout: SESSION_TIMEOUT_MS,
   }

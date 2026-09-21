@@ -26,7 +26,7 @@ export function Modal(props: ModalProps) {
     <AlertDialog onOpenChange={disclosure.cancel} isOpen={disclosure.visible}>
       <AlertDialog.Backdrop>
         <AlertDialog.Container>
-          <AlertDialog.Dialog className="sm:max-w-[400px]">
+          <AlertDialog.Dialog className="sm:max-w-[400px]" data-modal-status={props.status}>
             <AlertDialog.CloseTrigger />
             <AlertDialog.Header>
               <AlertDialog.Icon status={props.status} />
@@ -36,10 +36,10 @@ export function Modal(props: ModalProps) {
               {props.description}
             </AlertDialog.Body>
             <AlertDialog.Footer>
-              <Button className="rounded-md" variant="tertiary" onPress={disclosure.cancel}>
+              <Button className="rounded-md" variant="tertiary" data-testid="dsh-modal-cancel" onPress={disclosure.cancel}>
                 {props.cancelText || t('buttons.cancel')}
               </Button>
-              <Button className="rounded-md" variant={buttonVariant} onPress={disclosure.confirm}>
+              <Button className="rounded-md" variant={buttonVariant} data-testid="dsh-modal-confirm" onPress={disclosure.confirm}>
                 {props.confirmText || t('buttons.confirm')}
               </Button>
             </AlertDialog.Footer>
