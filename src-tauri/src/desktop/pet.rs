@@ -301,7 +301,7 @@ pub fn ensure_pet_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Webvie
         log::warn!(
             "PET_OVERLAY_UNSUPPORTED: always-on-top and absolute positioning are unavailable on \
              a native Wayland session; the pet window is covered by other windows and does not \
-             stay where it was placed. Launch with GDK_BACKEND=x11 to restore them."
+             stay where it was placed. Enable the XWayland option in pet settings to restore them."
         );
     }
     let app_handle = app.clone();

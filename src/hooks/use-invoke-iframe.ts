@@ -40,6 +40,8 @@ const ALLOWED_INVOKE_CMDS = new Set([
   'open_external_url',
   'get_pet_status',
   'get_pet_overlay_supported',
+  'get_force_xwayland',
+  'set_force_xwayland',
   'set_pet_enabled',
   'set_active_pet',
   'set_pet_size',
