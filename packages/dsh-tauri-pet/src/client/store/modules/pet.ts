@@ -23,6 +23,8 @@ export const pet = defineStore({
     prefills: {} as Record<string, string>,
     /** 当前环境能否让桌宠窗口置顶并定位；`null` 为尚未读取（issue #649）。 */
     overlaySupported: null as boolean | null,
+    /** 「强制 XWayland」开关的持久值；`null` 为尚未读取（issue #649）。 */
+    forceXwayland: null as boolean | null,
   }),
   actions: {
     /** 开始一次状态拉取，返回其轮次。 */
@@ -50,6 +52,9 @@ export const pet = defineStore({
     },
     setOverlaySupported(supported: boolean): void {
       this.overlaySupported = supported
+    },
+    setForceXwayland(enabled: boolean): void {
+      this.forceXwayland = enabled
     },
     setCodexPets(list: PetListItem[]): void {
       this.codexPets = list
