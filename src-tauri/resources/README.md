@@ -85,7 +85,9 @@ Which root is actually used is recorded per machine in
 
 * a path → that root is used (any absolute location, or a `resources/...` token
   resolved against the installed app's resource root);
-* `null` → the system environment satisfies this dependency, nothing is managed;
+* `null` → the system environment satisfies this dependency; a managed copy is
+  still downloaded into `managedRoot` if one is ever needed (and the mapping is
+  rewritten then);
 * a missing key → fall back to the manifest's `managedRoot` (under app data).
 
 This is what makes a future "bundled core" build a manifest-only change:
