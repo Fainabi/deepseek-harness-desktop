@@ -379,6 +379,13 @@ pub async fn launch(app_handle: tauri::AppHandle) -> Result<(), String> {
     if let Err(e) = crate::service::patch::llm_session::apply(&app_handle) {
         log::warn!("pi-ai session header patch failed: {e}");
     }
+    // Codex 系端点把思维链写在正文里（`<thinking>…</thinking>`），pi-ai 的
+    // openai-completions 适配器只认识结构化推理字段，思考便混进回答正文。补丁在
+    // 消息开头的围栏处把这段文本改道到 thinking 事件，harness 侧按 reasoning 块落库。
+    // 最佳努力且幂等：目标已含标记或锚点缺失时 patch_dsh 安全跳过。
+    if let Err(e) = crate::service::patch::pi_ai_thinking::apply(&app_handle) {
+        log::warn!("pi-ai thinking-as-text patch failed: {e}");
+    }
     // WKWebView 点击 `<button>` 不转移焦点：模型座位的 portal 菜单在 mousedown 阶段收到
     // `relatedTarget` 为 null 的 blur 就直接 close()，菜单在 click 之前卸载，鼠标选择
     // 模型 / 推理等级变成空操作（键盘 Enter 正常、浏览器正常）。补丁放行该 blur，菜单外的
