@@ -103,24 +103,6 @@ fn req_matches(req: &str, version: &semver::Version) -> bool {
 }
 
 impl PluginVersion {
-    /// 当前核心命中的插件版本区间（没有任何 `dsh` 区间命中时为 None）。
-    ///
-    /// 矩阵按**升序阶梯**声明（越靠后的一代越新）。较旧的区间通常对上界开放
-    /// （如 `^0.1.5-rc.1` 覆盖整个 0.1.x），因此 release 核心可能同时落在多条区间内；
-    /// 此时必须取**最后**一条命中规则，否则会把新插件按旧一代的版本区间判成不兼容，
-    /// 进而在 `retire_on` 下被误退役。
-    pub fn plugin_req_for_core(&self, core: Option<&str>) -> Option<&str> {
-        let PluginVersion::Matrix(pairs) = self else {
-            return None;
-        };
-        let core = semver::Version::parse(core?).ok()?;
-        pairs
-            .iter()
-            .rev()
-            .find(|pair| req_matches(&pair.dsh, &core))
-            .map(|pair| pair.version.as_str())
-    }
-
     /// 核心是否已超出矩阵声明的全部 `dsh` 区间（无矩阵或版本不可解析时为 false）
     pub fn unsupported_on(&self, core: Option<&str>) -> bool {
         let PluginVersion::Matrix(pairs) = self else {
@@ -568,23 +550,13 @@ mod tests {
                 dsh: "^0.1.7-rc.1".to_string(),
             },
         ]);
-        assert_eq!(
-            matrix.plugin_req_for_core(Some("0.1.5-rc.3")),
-            Some("^0.19.1")
-        );
-        assert_eq!(
-            matrix.plugin_req_for_core(Some("0.1.7-rc.2")),
-            Some("^0.21.1")
-        );
-        // release 核心同时落在两条区间内：必须取最新一代规则，否则新插件会被误退役
-        assert_eq!(matrix.plugin_req_for_core(Some("0.1.8")), Some("^0.21.1"));
-        assert_eq!(matrix.plugin_req_for_core(Some("0.2.0")), None);
         assert!(!matrix.unsupported_on(Some("0.1.5-rc.3")));
         assert!(!matrix.unsupported_on(Some("0.1.8")));
         assert!(!matrix.unsupported_on(None));
         assert!(!matrix.unsupported_on(Some("not-a-version")));
         assert!(matrix.unsupported_on(Some("0.2.0")));
         assert!(matrix.matches_any_declared(Some("0.19.5")));
+        assert!(matrix.matches_any_declared(Some("0.21.3")));
         assert!(!matrix.matches_any_declared(Some("0.25.0")));
         assert!(!matrix.matches_any_declared(None));
     }
@@ -593,7 +565,7 @@ mod tests {
     fn declared_version_string_is_never_unsupported() {
         let declared = PluginVersion::Declared("latest".to_string());
         assert!(!declared.unsupported_on(Some("9.9.9")));
-        assert_eq!(declared.plugin_req_for_core(Some("9.9.9")), None);
+        assert!(!declared.matches_any_declared(Some("9.9.9")));
     }
 
     #[test]
