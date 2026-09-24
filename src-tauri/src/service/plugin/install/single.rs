@@ -487,7 +487,7 @@ mod tests {
             (Some("0.1.6"), Some("1.2.5"), false),
             (Some("0.1.6"), Some("1.4.0"), false),
             (Some("0.1.7-rc.2"), Some("1.4.0"), false),
-            (Some("0.1.7-rc.2"), Some("1.2.0"), false),
+            (Some("0.1.7-rc.2"), Some("1.2.0"), true),
             (Some("0.2.0"), Some("1.4.0"), true),
             (Some("0.2.0"), Some("2.0.0"), false),
             (Some("0.2.0"), Some("1.0.0"), false),

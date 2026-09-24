@@ -170,6 +170,18 @@ impl PluginVersion {
         declared
     }
 
+    /// 已安装版本是否属于核心当前那一代（`None` = 无法判定：没有命中区间，或版本 /
+    /// 区间无法解析）
+    pub fn installed_matches_core_generation(
+        &self,
+        core: Option<&str>,
+        installed: Option<&str>,
+    ) -> Option<bool> {
+        let req = parse_req(self.plugin_req_for_core(core)?)?;
+        let installed = semver::Version::parse(installed?).ok()?;
+        Some(req.matches(&installed))
+    }
+
     /// 已安装版本是否落在矩阵声明的任一同代区间内（核心已超出时的清理判定）
     pub fn matches_any_declared(&self, installed: Option<&str>) -> bool {
         let PluginVersion::Matrix(pairs) = self else {

@@ -55,15 +55,10 @@ impl PreinstallPluginInfo {
 
     /// 核心驱动的退役判定（弃用 / 被核心吸收后自动卸载）。
     ///
-    /// **只有核心已超出矩阵声明的全部 `dsh` 区间时**才可能退役：这个核心没有任何一代
-    /// 规则登记过，而已装版本又落在某代声明的插件区间内（随旧核心装上的旧版本），卸载后
-    /// 交给安装流程重新决定装什么。
-    ///
-    /// 核心命中某代区间时**从不**因为「已装版本不等于该代推荐区间」而卸载：安装走的是
-    /// 包名（registry 上的最新版），推荐区间未必已发布，按推荐区间删除会让用户刚装好的
-    /// 插件在下次启动时凭空消失。
-    ///
-    /// 未声明区间 / 版本不可解析 → 不退役（宁可保留也不误删）。
+    /// - 核心命中某代区间：已装版本不属于该代声明的插件区间 → 退役（安装流程会按该代
+    ///   区间钉版本重装，见 `preset_spec_for_install`）；
+    /// - 核心超出全部区间：已装版本仍落在任一同代区间内（旧版本）→ 退役；
+    /// - 未声明区间 / 版本不可解析 / 已装版本无法解析 → 不退役（宁可保留也不误删）。
     pub(crate) fn retire_on(
         &self,
         core_version: Option<&str>,
@@ -72,10 +67,10 @@ impl PreinstallPluginInfo {
         let Some(version) = self.version.as_ref() else {
             return false;
         };
-        if !version.unsupported_on(core_version) {
-            return false;
+        if version.unsupported_on(core_version) {
+            return version.matches_any_declared(installed_version);
         }
-        version.matches_any_declared(installed_version)
+        version.installed_matches_core_generation(core_version, installed_version) == Some(false)
     }
 }
 
@@ -659,9 +654,9 @@ mod tests {
         }
     }
 
-    /// 核心驱动的退役判定：核心命中某区间 → 从不退役（已装版本由 registry 决定，未必
-    /// 落在该代推荐区间内）；核心超出全部区间 → 已安装版本仍落在任一同代区间内才退役
-    /// （新版本宁可保留）。
+    /// 核心驱动的退役判定：核心命中某代区间 → 已装版本不属于该代才退役（旧版插件在
+    /// 核心换代后要卸掉，由安装流程按该代区间钉版本重装）；核心超出全部区间 → 已安装
+    /// 版本仍落在任一同代区间内才退役（新版本宁可保留）。
     #[test]
     fn retire_decision_matrix_follows_declared_ranges() {
         let declared = matrix(&[("^1.2.0", "^0.1.5-rc.1"), ("^1.4.0", "^0.1.7-rc.1")]);
@@ -670,7 +665,7 @@ mod tests {
             (Some("0.1.6"), Some("1.2.5"), false),
             (Some("0.1.6"), Some("1.4.0"), false),
             (Some("0.1.7-rc.2"), Some("1.4.0"), false),
-            (Some("0.1.7-rc.2"), Some("1.2.0"), false),
+            (Some("0.1.7-rc.2"), Some("1.2.0"), true),
             (Some("0.2.0"), Some("1.4.0"), true),
             (Some("0.2.0"), Some("1.2.0"), true),
             (Some("0.2.0"), Some("2.0.0"), false),
@@ -693,24 +688,29 @@ mod tests {
         }
     }
 
-    /// 回归：清单按「核心区间 ↔ 推荐插件版本」声明，而安装流程走的是包名（落 registry
-    /// 上的最新版，推荐区间可能尚未发布）。核心命中该代区间时，绝不能按推荐区间把用户
-    /// 刚装好的插件退役——否则插件会在下次启动时凭空消失。
+    /// 回归：核心换代后，落在**上一代**推荐区间的已装插件必须退役，由安装流程按当前
+    /// 那一代区间钉版本重装（核心 0.1.7-rc.1 上装着的 0.19.x 属于 `^0.1.5-rc.1` 一代）；
+    /// 已经装成当前那一代的版本则必须保留。
     #[test]
-    fn covered_core_never_retires_installed_preset() {
-        for (id, core, installed) in [
-            ("dsh-better-sidebar", "0.1.7-rc.1", "0.19.1"),
-            ("dsh-rewind-plugin", "0.1.7-rc.1", "0.12.2"),
-            ("@xmanrui/dsh-im", "0.1.7-rc.1", "4.26.0"),
+    fn covered_core_retires_previous_generation_preset() {
+        for (id, core, installed, retire) in [
+            ("dsh-better-sidebar", "0.1.7-rc.1", "0.19.1", true),
+            ("dsh-better-sidebar", "0.1.7-rc.1", "0.21.3", false),
+            ("dsh-rewind-plugin", "0.1.7-rc.1", "0.12.2", true),
+            ("dsh-rewind-plugin", "0.1.7-rc.1", "0.14.0", false),
+            ("@xmanrui/dsh-im", "0.1.7-rc.1", "4.26.0", true),
+            ("@xmanrui/dsh-im", "0.1.7-rc.1", "4.28.1", false),
+            ("dsh-better-sidebar", "0.1.5-rc.3", "0.19.1", false),
         ] {
             let entry = load_presets_for_test()
                 .into_iter()
                 .find(|p| p.id == id)
                 .unwrap_or_else(|| panic!("{id}"));
-            assert!(!entry.unsupported_on(Some(core)), "{id} 不应判为不支持 {core}");
-            assert!(
-                !entry.retire_on(Some(core), Some(installed)),
-                "{id}@{installed} 在核心 {core} 下被误退役"
+            assert!(!entry.unsupported_on(Some(core)), "{id} 的核心 {core} 应有命中代");
+            assert_eq!(
+                entry.retire_on(Some(core), Some(installed)),
+                retire,
+                "{id}@{installed} 在核心 {core} 下的退役判定"
             );
         }
     }
