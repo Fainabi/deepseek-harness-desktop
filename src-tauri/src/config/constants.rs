@@ -84,7 +84,7 @@ pub const PNPM_ENTRY_RELATIVE: &str = "bin/pnpm.cjs";
 
 /// 开发构建的用户级 shim 根目录名，不与 release 的 CLI 集成目录冲突。
 #[cfg_attr(not(windows), allow(dead_code))] // 仅 Windows 的 bin 目录计算使用
-pub const CLI_ROOT_DEV_DIR_NAME: &str = "deepseek-harness-dev";
+pub const CLI_ROOT_DEV_DIR_NAME: &str = "dev-dsh";
 
 /// Windows 免安装 Git 的安装目录与 CLI 入口（相对安装目录）。
 #[cfg_attr(not(windows), allow(dead_code))] // 仅 Windows 的 MinGit 安装路径使用
