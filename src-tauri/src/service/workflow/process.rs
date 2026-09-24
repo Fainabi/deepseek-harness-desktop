@@ -175,6 +175,14 @@ pub(super) fn on_owned_process_exit(
             "Owned Harness process {} exited with code {code}; resetting status to Stopped",
             owned.pid
         );
+        // SIGABRT：V8 堆耗尽（`JavaScript heap out of memory`）是桌面端最常见的成因
+        // （issue #699），补一条可检索的日志，便于在没有前端时定位。
+        if code == 134 {
+            log::warn!(
+                "HARNESS_HEAP_OOM: Harness aborted (code 134 / SIGABRT); an exhausted V8 heap \
+                 limit is the common cause — raise the service memory limit in Settings"
+            );
+        }
     } else {
         log::warn!(
             "Owned Harness process {} exited (exit code unavailable); resetting status to Stopped",
