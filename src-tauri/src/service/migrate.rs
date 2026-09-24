@@ -129,6 +129,21 @@ pub fn migrate_app_data_dir(app_handle: &AppHandle) -> Result<(), String> {
     }
 
     migrate_impl(&legacy, &target)?;
+    // 依赖映射表记录的是绝对安装根，整树搬迁后旧路径已失效：清掉映射，让启动时的
+    // 依赖检测按新位置重新建立（映射缺失时解析回落清单默认托管根）。
+    for candidate in [
+        target.join(config::dependencies::MAPPING_FILE),
+        target
+            .join(config::APP_DATA_DEV_DIR_NAME)
+            .join(config::dependencies::MAPPING_FILE),
+    ] {
+        if candidate.is_file() {
+            match fs::remove_file(&candidate) {
+                Ok(()) => log::info!("removed stale dependency mapping: {}", candidate.display()),
+                Err(e) => log::warn!("remove {} failed: {e}", candidate.display()),
+            }
+        }
+    }
     log::info!(
         "app data dir migrated: {} -> {}",
         legacy.display(),

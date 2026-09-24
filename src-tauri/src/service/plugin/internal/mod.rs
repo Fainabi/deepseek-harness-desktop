@@ -1,5 +1,5 @@
 //! 内置插件启动自愈：随安装包分发的内置插件（条目位于
-//! `internal-plugins.json`，产物目录 `resources/node_modules/<name>` 由构建期
+//! `plugins.built-in`，产物目录 `resources/node_modules/<name>` 由构建期
 //! `scripts/build-plugins.ts` 的 `pnpm deploy` 打包）在服务启动前核对
 //! 「是否已安装 + 安装路径是否仍指向当前捆绑目录」：未安装 / 路径不正确 / 用户
 //! 卸载后残留缺失 → 一律走常规安装流程强制重装，保证桌面外壳依赖的桥接层
@@ -241,7 +241,7 @@ pub(crate) fn repair_loader_state(app_handle: &AppHandle) -> Result<(), String> 
 
 pub(crate) async fn ensure(app_handle: &AppHandle) -> Result<(), String> {
     let presets = load_presets(app_handle);
-    // 被核心吸收的内置插件（声明了 dshSupportedVersion 且当前核心已超越）自愈不再装回，
+    // 被核心吸收的内置插件（当前核心已超出其声明的全部核心版本区间）自愈不再装回，
     // 与 `uninstall_deprecated_plugins` 的退役判定同源，避免两边互相拉扯。
     let core_version = crate::service::core::active_version(app_handle);
     let internal: Vec<_> = presets

@@ -19,6 +19,44 @@
       }
     }
   },
+  "dependencies": {
+    // 依赖映射规范：AppData 的 dependencies.json 只记录每个依赖的安装根
+    // （null = 用系统环境）；入口相对路径与默认托管根以本表为准。
+    // 位置可为绝对路径（任意位置）、resources/*（安装包资源）或相对 AppData 的相对路径。
+    "node": {
+      "engine": ">=22.22.0",
+      "entry": {
+        "windows": "node.exe",
+        "default": "bin/node"
+      },
+      "managedRoot": "runtime",
+      "overridable": true
+    },
+    "pnpm": {
+      "engine": ">=11.7.0",
+      "entry": "bin/pnpm.cjs",
+      "managedRoot": "dependencies/pnpm",
+      "overridable": true
+    },
+    "dsh": {
+      "engine": {
+        "recommend": "0.1.5-rc.3",
+        "minimum": "0.1.5-rc.1"
+      },
+      "entry": "node_modules/@deepseek-ai/dsh/lib/bin.js",
+      "managedRoot": "dependencies/dsh",
+      "overridable": true
+    },
+    "git": {
+      "engine": ">2.53.0.2",
+      "entry": {
+        "windows": "cmd/git.exe",
+        "default": "bin/git"
+      },
+      "managedRoot": "dependencies/git",
+      "overridable": true
+    }
+  },
   "plugins": {
     "depercated": [
       "dsh-win-terminal-inspector",
