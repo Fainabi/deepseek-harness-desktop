@@ -97,13 +97,59 @@ pub struct VersionPair {
 
 /// 区间是否命中给定版本（区间无法解析时视为不命中）
 fn req_matches(req: &str, version: &semver::Version) -> bool {
-    semver::VersionReq::parse(req)
-        .map(|req| req.matches(version))
-        .unwrap_or(false)
+    parse_req(req).is_some_and(|req| req.matches(version))
+}
+
+/// 解析区间声明，兼容 npm 风格的空格分隔多比较符。
+///
+/// 清单按 npm 习惯书写（`>=0.1.7-rc.1 <0.1.7-rc.5`），而 `semver` crate 只认逗号
+/// 分隔、且不允许运算符与版本之间有空格：这里把两类写法都归一到 `a,b` 形式，
+/// 无法解析时返回 None（调用方按「不做判定」处理，避免手误把插件误标不兼容）。
+fn parse_req(raw: &str) -> Option<semver::VersionReq> {
+    let mut parts: Vec<String> = Vec::new();
+    let mut pending: Option<String> = None;
+    for token in raw.split_whitespace() {
+        let token = token.trim_matches(',');
+        if token.is_empty() {
+            continue;
+        }
+        if matches!(token, ">" | ">=" | "<" | "<=" | "=" | "^" | "~") {
+            pending = Some(token.to_string());
+            continue;
+        }
+        match pending.take() {
+            Some(op) => parts.push(format!("{op}{token}")),
+            None => parts.push(token.to_string()),
+        }
+    }
+    if pending.is_some() || parts.is_empty() {
+        return None;
+    }
+    semver::VersionReq::parse(&parts.join(",")).ok()
 }
 
 impl PluginVersion {
+    /// 当前核心命中的插件版本区间（没有任何 `dsh` 区间命中时为 None）。
+    ///
+    /// 矩阵按**升序阶梯**声明（越靠后的一代越新）。较旧的区间通常对上界开放
+    /// （如 `^0.1.5-rc.1` 覆盖整个 0.1.x），因此 release 核心可能同时落在多条区间内；
+    /// 此时必须取**最后**一条命中规则，否则会把新插件按旧一代的推荐区间钉版本。
+    pub fn plugin_req_for_core(&self, core: Option<&str>) -> Option<&str> {
+        let PluginVersion::Matrix(pairs) = self else {
+            return None;
+        };
+        let core = semver::Version::parse(core?).ok()?;
+        pairs
+            .iter()
+            .rev()
+            .find(|pair| req_matches(&pair.dsh, &core))
+            .map(|pair| pair.version.as_str())
+    }
+
     /// 核心是否已超出矩阵声明的全部 `dsh` 区间（无矩阵或版本不可解析时为 false）
+    ///
+    /// 全部区间都能解析、且没有一条命中该核心才算「不兼容当前核心」；任一条区间写错
+    /// 时不做判定（宁可显示兼容，也不让手误把插件在界面上误标）。
     pub fn unsupported_on(&self, core: Option<&str>) -> bool {
         let PluginVersion::Matrix(pairs) = self else {
             return false;
@@ -111,7 +157,17 @@ impl PluginVersion {
         let Some(Ok(core)) = core.map(semver::Version::parse) else {
             return false;
         };
-        !pairs.iter().any(|pair| req_matches(&pair.dsh, &core))
+        let mut declared = false;
+        for pair in pairs {
+            let Some(req) = parse_req(&pair.dsh) else {
+                return false;
+            };
+            declared = true;
+            if req.matches(&core) {
+                return false;
+            }
+        }
+        declared
     }
 
     /// 已安装版本是否落在矩阵声明的任一同代区间内（核心已超出时的清理判定）
@@ -550,6 +606,17 @@ mod tests {
                 dsh: "^0.1.7-rc.1".to_string(),
             },
         ]);
+        assert_eq!(
+            matrix.plugin_req_for_core(Some("0.1.5-rc.3")),
+            Some("^0.19.1")
+        );
+        assert_eq!(
+            matrix.plugin_req_for_core(Some("0.1.7-rc.2")),
+            Some("^0.21.1")
+        );
+        // release 核心同时落在两条区间内：必须取最新一代规则，否则会把新插件按旧一代钉版本
+        assert_eq!(matrix.plugin_req_for_core(Some("0.1.8")), Some("^0.21.1"));
+        assert_eq!(matrix.plugin_req_for_core(Some("0.2.0")), None);
         assert!(!matrix.unsupported_on(Some("0.1.5-rc.3")));
         assert!(!matrix.unsupported_on(Some("0.1.8")));
         assert!(!matrix.unsupported_on(None));
@@ -565,6 +632,8 @@ mod tests {
     fn declared_version_string_is_never_unsupported() {
         let declared = PluginVersion::Declared("latest".to_string());
         assert!(!declared.unsupported_on(Some("9.9.9")));
+        // 字符串声明不参与按核心钉版本（`latest` 这类标记不该拼进 spec）
+        assert_eq!(declared.plugin_req_for_core(Some("9.9.9")), None);
         assert!(!declared.matches_any_declared(Some("9.9.9")));
     }
 

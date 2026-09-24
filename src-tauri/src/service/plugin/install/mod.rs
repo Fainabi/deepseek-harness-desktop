@@ -165,6 +165,7 @@ async fn install_with_cancel(
         let raw = normalize_git_spec(&preset_spec_for_install(
             preset,
             bundled_dir_of(app_handle, preset),
+            core_version.as_deref(),
         )?);
         // 规范化后 `git+...` 前缀即 git 托管依赖：pnpm 安装时需要实际可用的 git
         // （见下方预检）；npm 包名（如 `dshmarket`）与 `link:` 本地依赖无需 git。
