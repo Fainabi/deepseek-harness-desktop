@@ -177,14 +177,20 @@ pub fn managed_root<R: Runtime>(app: &AppHandle<R>, key: &str) -> PathBuf {
 /// 当前生效的依赖根：映射指定的根优先，否则回落清单默认托管根
 ///
 /// 映射表里的值同样按 [`manifest::resolve_location`] 解析：绝对路径原样使用（任意
-/// 位置），`resources/...` 指向安装包资源根，其余相对路径相对 AppData 基目录。因此
-/// 本地捆绑 / 切换内核只需在映射表里写 `"dsh": "resources/dsh"` 或任意绝对路径，
-/// 不必改动清单或重装。
+/// 位置），`$AppData/...` / `$Resources/...` 指向数据目录 / 安装包资源根。因此本地
+/// 捆绑 / 切换内核只需在映射表里写 `"dsh": "$Resources/dsh"` 或任意绝对路径，不必
+/// 改动清单或重装。
+///
+/// 清单把 `dependencies.<key>.overridable` 声明为 false 时，映射表记录的位置一律
+/// 被忽略（本地捆绑版内核固定随包，不允许被运行时改写）。
 pub fn active_root<R: Runtime>(app: &AppHandle<R>, key: &str) -> PathBuf {
-    match mapped(app, key) {
-        Some(Some(recorded)) => manifest::resolve_location(app, &recorded.to_string_lossy()),
-        _ => managed_root(app, key),
+    let overridable = manifest::dependency_spec(app, key).is_none_or(|spec| spec.overridable);
+    if overridable {
+        if let Some(Some(recorded)) = mapped(app, key) {
+            return manifest::resolve_location(app, &recorded.to_string_lossy());
+        }
     }
+    managed_root(app, key)
 }
 
 /// 入口相对路径（相对依赖根）：清单 `dependencies.<key>.entry`，未声明时用内置默认
