@@ -175,9 +175,14 @@ pub fn managed_root<R: Runtime>(app: &AppHandle<R>, key: &str) -> PathBuf {
 }
 
 /// 当前生效的依赖根：映射指定的根优先，否则回落清单默认托管根
+///
+/// 映射表里的值同样按 [`manifest::resolve_location`] 解析：绝对路径原样使用（任意
+/// 位置），`resources/...` 指向安装包资源根，其余相对路径相对 AppData 基目录。因此
+/// 本地捆绑 / 切换内核只需在映射表里写 `"dsh": "resources/dsh"` 或任意绝对路径，
+/// 不必改动清单或重装。
 pub fn active_root<R: Runtime>(app: &AppHandle<R>, key: &str) -> PathBuf {
     match mapped(app, key) {
-        Some(Some(path)) => path,
+        Some(Some(recorded)) => manifest::resolve_location(app, &recorded.to_string_lossy()),
         _ => managed_root(app, key),
     }
 }
@@ -327,14 +332,22 @@ mod tests {
             .join("resources")
             .join(manifest::MANIFEST_FILE);
         let manifest = manifest::read_at(&path).expect("manifest should parse");
+        // 清单声明的托管根可以是 `$AppData/...` 令牌，因此比较**解析后**的位置
+        let base = PathBuf::from("C:/app-data");
+        let resources = PathBuf::from("C:/app-resources");
         for (key, root, entry) in [
-            (DEP_NODE, "runtime", default_entry(DEP_NODE)),
-            (DEP_PNPM, "dependencies/pnpm", default_entry(DEP_PNPM)),
-            (DEP_DSH, "dependencies/dsh", default_entry(DEP_DSH)),
-            (DEP_GIT, "dependencies/git", default_entry(DEP_GIT)),
+            (DEP_NODE, default_managed_root(DEP_NODE), default_entry(DEP_NODE)),
+            (DEP_PNPM, default_managed_root(DEP_PNPM), default_entry(DEP_PNPM)),
+            (DEP_DSH, default_managed_root(DEP_DSH), default_entry(DEP_DSH)),
+            (DEP_GIT, default_managed_root(DEP_GIT), default_entry(DEP_GIT)),
         ] {
             let spec = manifest.dependencies.get(key).expect("spec should exist");
-            assert_eq!(spec.managed_root.as_deref(), Some(root), "{key}");
+            let declared = spec.managed_root.as_deref().expect("managedRoot");
+            assert_eq!(
+                manifest::resolve_location_from(&base, Some(&resources), declared),
+                base.join(root),
+                "{key}"
+            );
             assert_eq!(spec.entry.resolve(), Some(entry), "{key}");
         }
     }

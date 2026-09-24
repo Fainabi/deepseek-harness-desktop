@@ -54,7 +54,7 @@ mapping entry**.
     "node": {
       "engine": ">=22.22.0",
       "entry": { "windows": "node.exe", "default": "bin/node" },
-      "managedRoot": "runtime",
+      "managedRoot": "$AppData/runtime",
       "overridable": true
     }
   },
@@ -62,6 +62,18 @@ mapping entry**.
   "pets": { "built-in": [] }
 }
 ```
+
+`managedRoot` (and every recorded mapping value) accepts three forms:
+
+| Form | Resolves to |
+| ---- | ----------- |
+| `$AppData/...` | the app data directory (its `dev` sibling in debug builds) |
+| `$Resources/...` (legacy spelling: `resources/...`) | the installed app's resource root, falling back to app data when it cannot be probed |
+| absolute path (`C:/anywhere/dsh`, `/opt/dsh`) | used verbatim — how a local bundle build points at a checkout |
+| any other relative path | app data directory |
+
+Prefixes are case-insensitive and require the `/` boundary (`$resourcesfoo` is a plain
+relative path).
 
 | Section | Purpose |
 | ------- | ------- |
@@ -83,15 +95,15 @@ Which root is actually used is recorded per machine in
 { "node": "C:/Users/you/AppData/Roaming/dsh-tauri/runtime", "pnpm": null, "dsh": "C:/Users/you/AppData/Roaming/dsh-tauri/dependencies/dsh" }
 ```
 
-* a path → that root is used (any absolute location, or a `resources/...` token
-  resolved against the installed app's resource root);
+* a path → that root is used (an absolute location anywhere on disk, or a
+  `$AppData/...` / `$Resources/...` token as described above);
 * `null` → the system environment satisfies this dependency; a managed copy is
   still downloaded into `managedRoot` if one is ever needed (and the mapping is
   rewritten then);
 * a missing key → fall back to the manifest's `managedRoot` (under app data).
 
 This is what makes a future "bundled core" build a manifest-only change:
-point `managedRoot` (or the recorded root) at `resources/dsh` and no path logic
+point `managedRoot` (or the recorded root) at `$Resources/dsh` and no path logic
 in `src-tauri` has to move.
 
 ### Preset plugins — `plugins.preset`

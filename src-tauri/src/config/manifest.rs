@@ -453,23 +453,54 @@ pub fn resolve_location<R: Runtime>(app: &AppHandle<R>, raw: &str) -> PathBuf {
     )
 }
 
-/// [`resolve_location`] 的纯函数版本（不依赖 AppHandle，便于单测）
+/// 位置令牌解析（依赖可位于任意位置：AppData 托管、安装目录捆绑、或用户指定的其它盘符）：
+///
+/// - 绝对路径（`C:/...`、`/opt/...`）原样返回；
+/// - `$AppData/...`（大小写不敏感）= AppData 基础目录，debug 构建即 `<base>/dev` 的同级；
+/// - `$Resources/...` = 安装包资源根（`resources/` 为等价旧写法），探测不到时回落 AppData；
+/// - 其余相对路径 = 相对 AppData 基础目录。
 pub fn resolve_location_from(base: &Path, resource_root: Option<&Path>, raw: &str) -> PathBuf {
     let value = raw.trim();
-    let path = PathBuf::from(value);
-    if path.is_absolute() {
-        return path;
+    if PathBuf::from(value).is_absolute() {
+        return PathBuf::from(value);
     }
     let normalized = value.replace('\\', "/");
     if let Some(rest) = normalized.strip_prefix("./") {
         return resolve_location_from(base, resource_root, rest);
     }
+    if let Some(rest) = strip_prefix_ci(&normalized, "$appdata") {
+        return join_token(base, rest);
+    }
+    if let Some(rest) = strip_prefix_ci(&normalized, "$resources") {
+        return join_token(resource_root.unwrap_or(base), rest);
+    }
     if let Some(rest) = normalized.strip_prefix("resources/") {
         if let Some(root) = resource_root {
-            return root.join(rest.replace('/', std::path::MAIN_SEPARATOR_STR));
+            return join_token(root, rest);
         }
     }
     base.join(value)
+}
+
+/// 大小写不敏感前缀剥离：前缀后必须是结束或 `/`（避免 `$resourcesfoo` 被当成令牌）
+fn strip_prefix_ci<'a>(value: &'a str, prefix: &str) -> Option<&'a str> {
+    let head = value.get(..prefix.len())?;
+    if !head.eq_ignore_ascii_case(prefix) {
+        return None;
+    }
+    let rest = &value[prefix.len()..];
+    if rest.is_empty() {
+        return Some(rest);
+    }
+    rest.strip_prefix('/')
+}
+
+/// 令牌剩余片段拼到根上（空片段取根本身）
+fn join_token(root: &Path, rest: &str) -> PathBuf {
+    if rest.is_empty() || rest == "." {
+        return root.to_path_buf();
+    }
+    root.join(rest.replace('/', std::path::MAIN_SEPARATOR_STR))
 }
 
 fn strip_jsonc(raw: &str) -> String {
@@ -734,6 +765,49 @@ mod tests {
         assert_eq!(
             resolve_location_from(&base, Some(&resources), absolute),
             PathBuf::from(absolute)
+        );
+    }
+
+    #[test]
+    fn location_prefix_tokens_are_case_insensitive_and_typed() {
+        let base = PathBuf::from("C:/app/data");
+        let resources = PathBuf::from("C:/app/resources");
+
+        for raw in [
+            "$AppData/runtime",
+            "$appdata/runtime",
+            "$APPDATA\\runtime",
+            "$AppData",
+        ] {
+            let expected = if raw.ends_with("runtime") {
+                base.join("runtime")
+            } else {
+                base.clone()
+            };
+            assert_eq!(
+                resolve_location_from(&base, Some(&resources), raw),
+                expected,
+                "{raw}"
+            );
+        }
+
+        for raw in ["$Resources/dsh", "$resources/dsh", r"$RESOURCES\dsh"] {
+            assert_eq!(
+                resolve_location_from(&base, Some(&resources), raw),
+                resources.join("dsh"),
+                "{raw}"
+            );
+        }
+
+        // 资源根探测不到时回落 AppData，而不是相对当前工作目录
+        assert_eq!(
+            resolve_location_from(&base, None, "$Resources/dsh"),
+            base.join("dsh")
+        );
+        // 前缀不完整（不是令牌）时按普通相对路径处理
+        assert_eq!(
+            resolve_location_from(&base, Some(&resources), "$resourcesfoo/dsh"),
+            base.join("$resourcesfoo/dsh")
         );
     }
 }
