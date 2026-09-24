@@ -9,7 +9,10 @@ fn node_options_heap_limit(node_options: &str) -> bool {
         let token = token.trim_matches(['"', '\'']);
         for flag in ["--max-old-space-size", "--max_old_space_size"] {
             if token == flag {
-                if tokens.next().is_some_and(|value| value.parse::<u32>().is_ok_and(|mb| mb > 0)) {
+                if tokens
+                    .next()
+                    .is_some_and(|value| value.trim_matches(['"', '\'']).parse::<u32>().is_ok_and(|mb| mb > 0))
+                {
                     return true;
                 }
                 break;
@@ -98,6 +101,7 @@ mod tests {
         for options in [
             "--max-old-space-size=8192",
             "--trace-warnings --max-old-space-size 8192",
+            "--max-old-space-size \"8192\"",
             "--max_old_space_size=8192",
             "--max_old_space_size 8192",
         ] {
