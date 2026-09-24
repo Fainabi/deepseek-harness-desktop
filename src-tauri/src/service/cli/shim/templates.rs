@@ -179,8 +179,7 @@ if ($userDsh) {
 }
 "#;
 
-#[cfg_attr(windows, allow(dead_code))] // 仅 Unix shim 使用
-#[cfg_attr(debug_assertions, allow(dead_code))]
+#[cfg_attr(any(windows, debug_assertions), allow(dead_code))] // 仅 Unix shim 使用
 pub(super) const SH_USER_DSH_PRECEDENCE: &str = r#"
 # Prefer a user-installed dsh on PATH (skip our own shim dir), fall back to bundled.
 # This preserves your own dsh binary and its $DSH_HOME config; nothing is overwritten.

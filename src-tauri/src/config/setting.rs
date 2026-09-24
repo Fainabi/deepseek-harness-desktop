@@ -425,19 +425,23 @@ mod tests {
 
     #[test]
     fn legacy_full_setting_write_preserves_latest_fields() {
-        let mut stale = Setting::default();
-        stale.zoom_factor = 0.8;
-        stale.close_action = "quit".to_string();
-        stale.pet_enabled = false;
-        stale.active_pet = Some("chat:stale".to_string());
-        stale.pet_size = Some(80.0);
+        let stale = Setting {
+            zoom_factor: 0.8,
+            close_action: "quit".to_string(),
+            pet_enabled: false,
+            active_pet: Some("chat:stale".to_string()),
+            pet_size: Some(80.0),
+            ..Default::default()
+        };
 
-        let mut current = Setting::default();
-        current.zoom_factor = 1.6;
-        current.close_action = "tray".to_string();
-        current.pet_enabled = true;
-        current.active_pet = Some("codex:latest".to_string());
-        current.pet_size = Some(140.0);
+        let current = Setting {
+            zoom_factor: 1.6,
+            close_action: "tray".to_string(),
+            pet_enabled: true,
+            active_pet: Some("codex:latest".to_string()),
+            pet_size: Some(140.0),
+            ..Default::default()
+        };
 
         let merged = preserve_persisted_fields(stale, &current);
 

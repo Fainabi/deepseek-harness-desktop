@@ -29,6 +29,7 @@ use std::path::Path;
 /// 单个补丁失败不阻断其余：与启动路径一样是「最佳努力」，但这里把错误汇总返回，
 /// 让编排层能看见哪一条出了问题。
 pub(crate) fn apply_all_at(core_dir: &Path) -> Result<(), String> {
+    #[allow(clippy::type_complexity)]
     let patches: [(&str, fn(&Path) -> Result<(), String>); 8] = [
         ("renderer", renderer::apply_at),
         ("composer", composer::apply_at),

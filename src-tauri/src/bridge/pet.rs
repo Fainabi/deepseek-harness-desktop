@@ -315,19 +315,17 @@ async fn consume_pet_session_stream(app: &AppHandle, url: &str) -> Result<(), St
             let trimmed = line.trim();
             if let Some(data) = trimmed.strip_prefix("data:") {
                 pending_data.push(data.trim().to_string());
-            } else if trimmed.is_empty() {
-                if !pending_data.is_empty() {
-                    let frame: Value = serde_json::from_str(&pending_data.join("\n"))
-                        .map_err(|error| error.to_string())?;
-                    let action = frame
-                        .get("action")
-                        .and_then(Value::as_str)
-                        .unwrap_or_default()
-                        .to_string();
-                    let payload = frame.get("payload").cloned().unwrap_or(Value::Null);
-                    emit_pet_session(app, &action, &payload);
-                    pending_data.clear();
-                }
+            } else if trimmed.is_empty() && !pending_data.is_empty() {
+                let frame: Value = serde_json::from_str(&pending_data.join("\n"))
+                    .map_err(|error| error.to_string())?;
+                let action = frame
+                    .get("action")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_string();
+                let payload = frame.get("payload").cloned().unwrap_or(Value::Null);
+                emit_pet_session(app, &action, &payload);
+                pending_data.clear();
             }
             // 其余（'：' 开头的注释帧等）忽略。
         }
@@ -690,13 +688,13 @@ struct SpriteGrid {
 /// 声明与图集比例不符时以图集为准：旧版 8x9 图集沿用缺省 v2 声明（或清单漏写版本）
 /// 是常见写法，按声明拒绝会让整个宠物无法导入。
 fn sprite_grid(declared: Option<u8>, width: u32, height: u32) -> Result<SpriteGrid, String> {
-    if width % u32::from(PET_SPRITE_COLUMNS) != 0 {
+    if !width.is_multiple_of(u32::from(PET_SPRITE_COLUMNS)) {
         return Err(format!(
             "PET_ASSET_DIMENSIONS_INVALID: spritesheet width must be divisible by {PET_SPRITE_COLUMNS} columns"
         ));
     }
-    let v1 = height % u32::from(PET_SPRITE_V1_ROWS) == 0;
-    let v2 = height % u32::from(PET_SPRITE_V2_ROWS) == 0;
+    let v1 = height.is_multiple_of(u32::from(PET_SPRITE_V1_ROWS));
+    let v2 = height.is_multiple_of(u32::from(PET_SPRITE_V2_ROWS));
     let version = match (v1, v2) {
         (false, false) => {
             return Err(format!(
@@ -1029,7 +1027,7 @@ fn copy_archive_entry<R: Read, W: Write>(
 fn extract_pet_archive(bytes: &[u8], staging: &Path) -> Result<PetManifest, String> {
     let mut archive = ZipArchive::new(Cursor::new(bytes))
         .map_err(|error| format!("PET_ARCHIVE_INVALID: failed to open zip: {error}"))?;
-    if archive.len() == 0 || archive.len() > PET_PACKAGE_MAX_ENTRIES {
+    if archive.is_empty() || archive.len() > PET_PACKAGE_MAX_ENTRIES {
         return Err(format!(
             "PET_ARCHIVE_ENTRY_LIMIT: archive must contain 1..={PET_PACKAGE_MAX_ENTRIES} entries"
         ));

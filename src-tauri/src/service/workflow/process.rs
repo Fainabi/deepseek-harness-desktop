@@ -330,12 +330,12 @@ fn command_line_has_argument(cmdline: &str, argument: &str) -> bool {
         let before_is_boundary = cmdline[..start]
             .chars()
             .next_back()
-            .map_or(true, char::is_whitespace);
+            .is_none_or(char::is_whitespace);
         let end = start + matched.len();
         let after_is_boundary = cmdline[end..]
             .chars()
             .next()
-            .map_or(true, char::is_whitespace);
+            .is_none_or(char::is_whitespace);
         before_is_boundary && after_is_boundary
     })
 }
@@ -351,7 +351,7 @@ fn command_line_has_argument_after(cmdline: &str, preceding: &str, argument: &st
         let end = start + matched.len();
         let rest = cmdline[end..].trim_start_matches(char::is_whitespace);
         rest.strip_prefix(argument)
-            .is_some_and(|tail| tail.chars().next().map_or(true, char::is_whitespace))
+            .is_some_and(|tail| tail.chars().next().is_none_or(char::is_whitespace))
     })
 }
 

@@ -383,11 +383,11 @@ pub async fn set_active(app_handle: &AppHandle, id: &str) -> Result<HarnessCore,
     // set_active 返回后通过同一把锁与启动串行化。
     drop(transition_guard);
 
-    Ok(list(app_handle)
+    list(app_handle)
         .await
         .into_iter()
         .find(|c| c.active)
-        .ok_or_else(|| "CORE_NOT_FOUND: active core disappeared after switch".to_string())?)
+        .ok_or_else(|| "CORE_NOT_FOUND: active core disappeared after switch".to_string())
 }
 
 /// 切换到指定 tag 的预打包版本（已下载的历史槽位）。
@@ -495,18 +495,16 @@ async fn switch_app_version(app_handle: &AppHandle, tag: &str) -> Result<(), Str
         ));
     }
 
-    if holding.exists() {
-        if !download::remove_dir_with_retry(&holding).await {
+    if holding.exists() && !download::remove_dir_with_retry(&holding).await {
+        log::warn!(
+            "CORE_SWITCH_WARNING: failed to remove stale backup {} after successful switch",
+            holding.display()
+        );
+        if let Err(e) = download::rename_with_retry(&holding, &stale_backup).await {
             log::warn!(
-                "CORE_SWITCH_WARNING: failed to remove stale backup {} after successful switch",
-                holding.display()
+                "CORE_SWITCH_WARNING: failed to rename stale backup to {}: {e}",
+                stale_backup.display()
             );
-            if let Err(e) = download::rename_with_retry(&holding, &stale_backup).await {
-                log::warn!(
-                    "CORE_SWITCH_WARNING: failed to rename stale backup to {}: {e}",
-                    stale_backup.display()
-                );
-            }
         }
     }
 

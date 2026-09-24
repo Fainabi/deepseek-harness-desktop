@@ -222,17 +222,12 @@ pub struct DependencySpec {
 }
 
 /// 入口路径声明：单一路径字符串或按平台映射
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum EntrySpec {
     Single(String),
     Platform(BTreeMap<String, String>),
+    #[default]
     Empty,
-}
-
-impl Default for EntrySpec {
-    fn default() -> Self {
-        EntrySpec::Empty
-    }
 }
 
 impl<'de> Deserialize<'de> for EntrySpec {

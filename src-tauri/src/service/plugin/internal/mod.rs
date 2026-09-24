@@ -110,6 +110,7 @@ impl EnsureCoordinator {
         })
     }
 
+    #[allow(clippy::type_complexity)]
     fn start(
         &mut self,
     ) -> (
@@ -219,16 +220,13 @@ pub(crate) fn repair_loader_state(app_handle: &AppHandle) -> Result<(), String> 
     // 启动时与新 patch 再合并，必须恢复官方约定的空根配置。
     let root = profile.join("cordis.yml");
     const EMPTY_ROOT: &str = "# dsh profile root — an empty entry list. The tree is composed as patches:\n# each bundle in package.json's dsh.profile.bundles, then cordis.patch.yml, then any\n# --patch overlays. Edit cordis.patch.yml, not this file.\n[]\n";
-    if std::fs::read_to_string(&root).ok().as_deref() != Some(EMPTY_ROOT) {
-        if profile.is_dir() {
-            std::fs::write(&root, EMPTY_ROOT).map_err(|e| {
-                format!("INTERNAL_PLUGIN_ROOT_WRITE_FAILED: {}: {e}", root.display())
-            })?;
-            log::warn!(
-                "INTERNAL_PLUGIN_PROFILE_MIGRATED: reset stale profile root {}",
-                root.display()
-            );
-        }
+    if std::fs::read_to_string(&root).ok().as_deref() != Some(EMPTY_ROOT) && profile.is_dir() {
+        std::fs::write(&root, EMPTY_ROOT)
+            .map_err(|e| format!("INTERNAL_PLUGIN_ROOT_WRITE_FAILED: {}: {e}", root.display()))?;
+        log::warn!(
+            "INTERNAL_PLUGIN_PROFILE_MIGRATED: reset stale profile root {}",
+            root.display()
+        );
     }
     if changed_manifest {
         log::warn!(

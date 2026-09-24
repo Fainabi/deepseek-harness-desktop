@@ -33,6 +33,7 @@ pub fn is_dev_build() -> bool {
 /// 备份字段（backup_retention_count / backup_include_credentials）由前端
 /// 设置页写入，归一化由 `normalize_backup_fields` 统一负责。
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn update_app_config(
     app_handle: AppHandle,
     port: Option<u16>,

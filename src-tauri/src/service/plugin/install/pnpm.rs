@@ -798,10 +798,7 @@ pub(crate) fn harness_prefer_bundled_pnpm(app_handle: &AppHandle) -> bool {
     }
     match store_major {
         Some(store) => bundled_major == Some(store) && user_major != Some(store),
-        None => match user_major {
-            Some(major) if major >= MIN_TRUSTED_PNPM_MAJOR => false,
-            _ => true,
-        },
+        None => !matches!(user_major, Some(major) if major >= MIN_TRUSTED_PNPM_MAJOR),
     }
 }
 
