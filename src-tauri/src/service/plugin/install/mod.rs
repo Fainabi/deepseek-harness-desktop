@@ -410,6 +410,9 @@ async fn run_plugin_with_allow_build_retry(
     owner: ProcessOwner,
 ) -> Result<(i32, String), String> {
     let _operation_guard = acquire_operation_lock().await;
+    // 上一次被强杀的安装（取消 / 刷新 / 退出）会在 profile 里留下 dsh 的孤儿写锁，
+    // 之后每次安装都要静默等到 deadline。dsh 侧不做恢复，这里按 PID 存活代劳。
+    super::process::clear_orphan_plugin_writer_lock(&super::installed::profile_dir(app_handle));
     let mut retries = 0usize;
     let mut all_output = String::new();
     let exit_code = loop {
