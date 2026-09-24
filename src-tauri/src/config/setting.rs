@@ -25,7 +25,7 @@ pub struct Setting {
     /// 预装插件引导是否已完成（确认安装或跳过都算完成，之后不再弹出）
     #[serde(default)]
     pub preinstall_done: bool,
-    /// 上次引导结束时的 `preset-plugins.json` 内容指纹。资源文件每次安装都会被
+    /// 上次引导结束时的清单 `plugins` 节内容指纹。资源清单每次安装都会被
     /// 强制覆盖、旧文件不复存在，只能把「上次看到的内容」记在这里，每次启动再比对：
     /// 内容有变更 → 重新进入预设引导。`None` = 老用户升级（无基线）→ 弹一次建立基线。
     #[serde(default)]
@@ -425,19 +425,23 @@ mod tests {
 
     #[test]
     fn legacy_full_setting_write_preserves_latest_fields() {
-        let mut stale = Setting::default();
-        stale.zoom_factor = 0.8;
-        stale.close_action = "quit".to_string();
-        stale.pet_enabled = false;
-        stale.active_pet = Some("chat:stale".to_string());
-        stale.pet_size = Some(80.0);
+        let stale = Setting {
+            zoom_factor: 0.8,
+            close_action: "quit".to_string(),
+            pet_enabled: false,
+            active_pet: Some("chat:stale".to_string()),
+            pet_size: Some(80.0),
+            ..Default::default()
+        };
 
-        let mut current = Setting::default();
-        current.zoom_factor = 1.6;
-        current.close_action = "tray".to_string();
-        current.pet_enabled = true;
-        current.active_pet = Some("codex:latest".to_string());
-        current.pet_size = Some(140.0);
+        let current = Setting {
+            zoom_factor: 1.6,
+            close_action: "tray".to_string(),
+            pet_enabled: true,
+            active_pet: Some("codex:latest".to_string()),
+            pet_size: Some(140.0),
+            ..Default::default()
+        };
 
         let merged = preserve_persisted_fields(stale, &current);
 

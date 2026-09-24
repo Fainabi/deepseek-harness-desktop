@@ -19,6 +19,47 @@
       }
     }
   },
+  "dependencies": {
+    // 依赖映射规范：AppData 的 dependencies.json 只记录每个依赖的安装根
+    // （null = 用系统环境）；入口相对路径与默认托管根以本表为准。
+    // managedRoot / 映射值支持三种形态：
+    //   $AppData/...    AppData 数据目录（debug 构建为 <base>/dev 的同级）
+    //   $Resources/...  安装包资源目录（`resources/...` 为等价旧写法）
+    //   绝对路径         任意位置（如加载本地捆绑版内核）
+    "node": {
+      "engine": ">=22.22.0",
+      "entry": {
+        "windows": "node.exe",
+        "default": "bin/node"
+      },
+      "managedRoot": "$AppData/runtime",
+      "overridable": true
+    },
+    "pnpm": {
+      "engine": ">=11.7.0",
+      "entry": "bin/pnpm.cjs",
+      "managedRoot": "$AppData/dependencies/pnpm",
+      "overridable": true
+    },
+    "dsh": {
+      "engine": {
+        "recommend": "0.1.5-rc.3",
+        "minimum": "0.1.5-rc.1"
+      },
+      "entry": "node_modules/@deepseek-ai/dsh/lib/bin.js",
+      "managedRoot": "$AppData/dependencies/dsh",
+      "overridable": true
+    },
+    "git": {
+      "engine": ">2.53.0.2",
+      "entry": {
+        "windows": "cmd/git.exe",
+        "default": "bin/git"
+      },
+      "managedRoot": "$AppData/dependencies/git",
+      "overridable": true
+    }
+  },
   "plugins": {
     "depercated": [
       "dsh-win-terminal-inspector",

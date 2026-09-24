@@ -574,9 +574,9 @@ export const harness = defineStore({
           }
           throw startupError('plugin-install', String(err), 'failed')
         }
-        // 预装插件引导：首次安装、老版本升级（无指纹基线）或 preset-plugins.json
+        // 预装插件引导：首次安装、老版本升级（无指纹基线）或清单 plugins 节
         // 内容变更（社区新增推荐插件）时重新进入预设流程，装完/跳过后才拉起服务。
-        // preset-plugins.json 随安装包发布、每次安装被强制覆盖，旧文件不可比对，
+        // 清单随安装包发布、每次安装被强制覆盖，旧内容不可比对，
         // 由 Rust 侧记录内容指纹到 app-data（.store.dat），启动时比对是否有变更。
         if (await invoke<boolean>('get_preinstall_pending')) {
           this.status = 'preinstall'
